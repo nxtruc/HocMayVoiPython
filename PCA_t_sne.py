@@ -803,7 +803,7 @@ def PCA_T_sne():
     ) 
 
 
-    st.title("🖊️ MNIST Classification App")
+    st.title("🖊️ MNIST PCA & t-SNE App")
 
     # Ensure the tab names are properly separated
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
