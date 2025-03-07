@@ -25,18 +25,58 @@ from sklearn.model_selection import train_test_split
 
 
 def ly_thuyet_PCA(): 
-        # Tiêu đề ứng dụng
-    st.markdown("<h2 style='display: flex; align-items: center;'>🔢 PCA - Phân tích thành phần chính</h1>", unsafe_allow_html=True)
+
+
+    st.title("Matrix Factorization")
+
+    st.markdown(
+        """
+        **Matrix Factorization** là phương pháp phân rã ma trận để trích xuất đặc trưng và giảm chiều dữ liệu.
+        Các phương pháp phổ biến gồm:
+        - **Principal Component Analysis (PCA)**: Giảm chiều bằng cách tìm trục chính.
+        - **Singular Value Decomposition (SVD)**: Phân rã ma trận thành ba ma trận con.
+        - **Non-Negative Matrix Factorization (NMF)**: Xấp xỉ ma trận với các giá trị không âm.
+        """
+    )
+
+    # Tiêu đề phụ
+    st.header("🔢 Khái niệm PCA")
     st.write("📉 PCA (Principal Component Analysis – Phân tích thành phần chính) là một kỹ thuật giảm chiều dữ liệu bằng cách tìm các hướng (thành phần chính) có phương sai lớn nhất trong dữ liệu.")
 
-    st.write("1. **Chuẩn hóa dữ liệu**: Đưa dữ liệu về trung bình 0, phương sai 1.")
-    st.write("2. **Tính ma trận hiệp phương sai**: Xác định mối quan hệ giữa các chiều dữ liệu.")
-    st.write("3. **Tính toán giá trị riêng và vector riêng**: Xác định các thành phần chính.")
-    st.write("4. **Chọn số thành phần chính**: Giữ lại những thành phần có phương sai cao nhất.")
-    st.write("5. **Biểu diễn dữ liệu**: Chuyển dữ liệu sang không gian mới với số chiều giảm.")
+    st.markdown(
+        """
+        <div style="text-align: center;">
+            <img src="https://machinelearningcoban.com/assets/27_pca/pca_var0.png" width="300">
+            <p><em>Matrix Factorization</em></p>
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
 
+    st.header("📌 Ý tưởng của PCA")
 
-    st.header("1️⃣ Công thức PCA")
+    st.markdown(
+        """
+        ### 1️⃣ Loại bỏ thành phần có phương sai nhỏ  
+        - PCA tìm các hướng có **phương sai lớn nhất** để giữ lại.  
+        - Các hướng có phương sai nhỏ bị loại bỏ vì chúng không đóng góp nhiều vào sự thay đổi của dữ liệu.  
+        
+        <div style="text-align: center;">
+            <img src="https://machinelearningcoban.com/assets/27_pca/pca_diagvar.png" width="50%">
+        </div>
+
+        ### 2️⃣ Xoay dữ liệu theo trục chính  
+        - PCA tìm một hệ trục tọa độ mới sao cho dữ liệu được trải dài theo các trục có phương sai lớn.  
+        - Điều này giúp giảm chiều dữ liệu mà vẫn giữ lại nhiều thông tin quan trọng.  
+
+        <div style="text-align: center;">
+            <img src="https://setosa.io/ev/principal-component-analysis/fb-thumb.png" width="50%">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.header("📌 Công thức PCA")
     st.write("📊 PCA sử dụng giá trị kỳ vọng, phương sai, ma trận hiệp phương sai và phân rã giá trị kỳ dị (SVD - Singular Value Decomposition) để tìm các thành phần chính.")
 
     st.subheader("🧮 Bước 1: Chuẩn hóa dữ liệu")
@@ -90,8 +130,9 @@ def ly_thuyet_PCA():
     st.write("- 🔍 Mất một phần thông tin khi giảm chiều, có thể ảnh hưởng đến hiệu suất mô hình.")
     st.write("- 🏷️ PCA không bảo toàn tính diễn giải của dữ liệu, do các thành phần chính không tương ứng với đặc trưng ban đầu.")
     st.write("- 🧮 Giả định rằng dữ liệu có quan hệ tuyến tính, không phù hợp với dữ liệu phi tuyến.")  
+    
 
- 
+    st.markdown("## 📉 Minh họa thu gọn chiều bằng PCA")
     # Tham số điều chỉnh với tooltip
     num_samples = st.slider("Số điểm dữ liệu 🟢", 100, 1000, 300, step=50, help="Số lượng điểm dữ liệu được tạo ra để thực hiện phân tích PCA. Giá trị càng lớn, dữ liệu càng phong phú nhưng cũng có thể làm tăng thời gian xử lý.")
     num_features = st.slider("Số chiều ban đầu 🔵", 3, 10, 3, help="Số lượng đặc trưng (features) ban đầu của dữ liệu. PCA sẽ giúp giảm số chiều này trong khi vẫn giữ lại tối đa thông tin quan trọng.")
