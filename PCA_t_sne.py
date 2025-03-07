@@ -26,7 +26,6 @@ from sklearn.model_selection import train_test_split
 
 def ly_thuyet_PCA(): 
 
-
     st.title("Matrix Factorization")
 
     st.markdown(
@@ -117,6 +116,8 @@ def ly_thuyet_PCA():
     """)
     st.write("📂 Ma trận các thành phần chính W chứa các vector riêng tương ứng với k giá trị riêng lớn nhất.")
     st.write("📉 Ma trận Z là dữ liệu mới sau khi giảm chiều.") 
+
+
 
     # Thêm phần ưu điểm và nhược điểm của PCA
     st.header("✅ Ưu điểm & ❌ Nhược điểm của PCA")
@@ -323,191 +324,6 @@ def data():
     - **Học sâu và phân loại hình ảnh**: Các mô hình học sâu, đặc biệt là mạng nơ-ron tích chập, được huấn luyện với bộ dữ liệu này để phân loại chữ số.
     """)
 
-
-def up_load_db():
-    # Tiêu đề
-    st.header("📥 Tải Dữ Liệu")
-
-    # Kiểm tra xem dữ liệu đã tải chưa
-    if "data" in st.session_state and st.session_state.data is not None:
-        st.warning("🔸 **Dữ liệu đã được tải lên rồi!** Bạn có thể tiếp tục với các bước tiền xử lý và chia dữ liệu.")
-    else:
-        # Chọn nguồn dữ liệu
-        option = st.radio("Chọn nguồn dữ liệu:", ["Tải từ OpenML", "Upload dữ liệu"], key="data_source_radio")
-
-        # Biến để lưu trữ dữ liệu
-        if "data" not in st.session_state:
-            st.session_state.data = None
-
-        # Nếu chọn tải từ OpenML
-        if option == "Tải từ OpenML":
-            st.markdown("#### 📂 Tải dữ liệu MNIST từ OpenML")
-            if st.button("Tải dữ liệu MNIST", key="download_mnist_button"):
-                st.write("🔄 Đang tải dữ liệu MNIST từ OpenML...")
-                
-                # Tải dữ liệu MNIST từ file .npy
-                X = np.load("X.npy")
-                y = np.load("y.npy")
-                
-                # Hiển thị 5 dòng dữ liệu đầu tiên, chuyển đổi mỗi ảnh thành vector 1 chiều
-                st.write("📊 **Dữ liệu mẫu:**")
-                X_reshaped = X[:5].reshape(5, -1)
-                st.write(pd.DataFrame(X_reshaped))
-
-                st.success("✅ Dữ liệu MNIST đã được tải thành công!")
-                st.session_state.data = (X, y)
-
-        # Nếu chọn upload dữ liệu từ máy
-        else:
-            st.markdown("#### 📤 Upload dữ liệu của bạn")
-
-            uploaded_file = st.file_uploader("Chọn một file ảnh", type=["png", "jpg", "jpeg"], key="file_upload")
-
-            if uploaded_file is not None:
-                image = Image.open(uploaded_file)
-                st.image(image, caption="Ảnh đã tải lên", use_column_width=True)
-
-                if image.size != (28, 28):
-                    st.error("❌ Ảnh không đúng kích thước 28x28 pixel. Vui lòng tải lại ảnh đúng định dạng.")
-                else:
-                    st.success("✅ Ảnh hợp lệ!")
-                    image = image.convert('L')
-                    image_array = np.array(image).reshape(1, -1)
-                    st.session_state.data = image_array
-
-    # Kiểm tra nếu dữ liệu đã được tải
-    if st.session_state.data is not None:
-        st.markdown("#### ✅ Dữ liệu đã sẵn sàng!")
-        
-        if isinstance(st.session_state.data, tuple):
-            X, y = st.session_state.data
-            st.markdown("##### 🔄 Tiến hành tiền xử lý dữ liệu MNIST")
-
-            preprocess_option = st.selectbox("Chọn phương pháp tiền xử lý dữ liệu:", 
-                                            ["Chuẩn hóa dữ liệu (Standardization)", "Giảm chiều (PCA)", "Giảm chiều (t-SNE)", "Không tiền xử lý"], key="preprocess_mnist")
-            
-            X_reshaped = X.reshape(X.shape[0], -1)
-            scaler = StandardScaler()
-            X_scaled = scaler.fit_transform(X_reshaped)
-            
-            if preprocess_option == "Chuẩn hóa dữ liệu (Standardization)":
-                st.write("📊 **Dữ liệu sau khi chuẩn hóa**:")
-                st.write(pd.DataFrame(X_scaled).head())
-                st.session_state.processed_data = X_scaled
-
-            elif preprocess_option == "Giảm chiều (PCA)":
-                n_components = st.slider("Chọn số chiều PCA:", min_value=10, max_value=100, value=50, step=10)
-                pca = PCA(n_components=n_components)
-                X_pca = pca.fit_transform(X_scaled)
-                st.write(f"📊 **Dữ liệu sau khi giảm chiều với PCA ({n_components} chiều):**")
-                st.write(pd.DataFrame(X_pca).head())
-                st.session_state.processed_data = X_pca
-
-            elif preprocess_option == "Giảm chiều (t-SNE)":
-                n_components = st.radio("Chọn số chiều t-SNE:", [2, 3], key="tsne_components")
-                perplexity = st.slider("Chọn perplexity:", min_value=5, max_value=50, value=30, step=5)
-                tsne = TSNE(n_components=n_components, perplexity=perplexity, random_state=42)
-                X_tsne = tsne.fit_transform(X_scaled)
-                st.write(f"📊 **Dữ liệu sau khi giảm chiều với t-SNE ({n_components} chiều):**")
-                st.write(pd.DataFrame(X_tsne).head())
-                st.session_state.processed_data = X_tsne
-
-            else:
-                st.write("📊 **Dữ liệu không có tiền xử lý**.")
-                st.session_state.processed_data = X_reshaped
-
-        elif isinstance(st.session_state.data, np.ndarray):
-            st.markdown("#### 👁️ Tiến hành tiền xử lý ảnh")
-            preprocess_option_image = st.selectbox("Chọn phương pháp tiền xử lý ảnh:",
-                                                   ["Chuẩn hóa ảnh", "Không tiền xử lý"], key="preprocess_image")
-
-            if preprocess_option_image == "Chuẩn hóa ảnh":
-                image_scaled = st.session_state.data / 255.0
-                st.write("📊 **Ảnh sau khi chuẩn hóa**:")
-                st.image(image_scaled.reshape(28, 28), caption="Ảnh sau khi chuẩn hóa", use_column_width=True)
-                st.session_state.processed_data = image_scaled
-            else:
-                st.write("📊 **Ảnh không có tiền xử lý**.")
-                st.session_state.processed_data = st.session_state.data
-    else:
-        st.warning("🔸 Vui lòng tải dữ liệu trước khi tiếp tục làm việc.")
-
-    st.markdown("""
-    🔹 **Lưu ý:**
-    - Ứng dụng chỉ sử dụng dữ liệu ảnh dạng **28x28 pixel (grayscale)**.
-    - Dữ liệu phải có cột **'label'** chứa nhãn (số từ 0 đến 9) khi tải từ OpenML.
-    - Nếu dữ liệu của bạn không đúng định dạng, vui lòng sử dụng dữ liệu MNIST từ OpenML.
-    """)
-
-
-def chia_du_lieu():
-    st.title("📌 Chia dữ liệu Train/Test")
-
-    # Đọc dữ liệu từ file
-    X = np.load("X.npy")
-    y = np.load("y.npy")
-    total_samples = X.shape[0]
-
-    # Nếu dữ liệu đã được chia trước đó, hiển thị thông tin và không chia lại
-    if "X_train" in st.session_state:
-        st.success("✅ **Dữ liệu đã được chia, không cần chạy lại!**")
-
-        # Hiển thị bảng dữ liệu đã chia
-        summary_df = pd.DataFrame({
-            "Tập dữ liệu": ["Train", "Validation", "Test"],
-            "Số lượng mẫu": [
-                len(st.session_state["X_train"]),
-                len(st.session_state["X_val"]),
-                len(st.session_state["X_test"])
-            ]
-        })
-        st.table(summary_df)
-        return
-
-    # Thanh chọn số lượng ảnh để train
-    num_samples = st.slider("📌 Chọn số lượng ảnh để train:", 1000, total_samples, 10000)
-
-    # Thanh chọn % dữ liệu Test
-    test_size = st.slider("📌 Chọn % dữ liệu Test", 10, 50, 20)
-    remaining_size = 100 - test_size  # Tính phần còn lại của tập Train
-
-    # Thanh chọn % dữ liệu Validation (trong tập Train)
-    val_size = st.slider("📌 Chọn % dữ liệu Validation (trong phần Train)", 0, 50, 15)
-
-    st.markdown(f"### 📌 **Tỷ lệ phân chia:** Test={test_size}%, Validation={val_size}%, Train={remaining_size - val_size}%")
-
-    if st.button("✅ Xác nhận & Lưu"):
-        # Chọn tập dữ liệu theo số lượng mẫu mong muốn
-        X_selected, _, y_selected, _ = train_test_split(X, y, train_size=num_samples, stratify=y, random_state=42)
-
-        # Chia train/test
-        X_train_full, X_test, y_train_full, y_test = train_test_split(X_selected, y_selected, 
-                                                                      test_size=test_size / 100, 
-                                                                      stratify=y_selected, random_state=42)
-
-        # Chia train/val
-        X_train, X_val, y_train, y_val = train_test_split(X_train_full, y_train_full, 
-                                                          test_size=val_size / (100 - test_size), 
-                                                          stratify=y_train_full, random_state=42)
-
-        # Lưu dữ liệu vào session_state để sử dụng sau này
-        st.session_state["X_train"] = X_train
-        st.session_state["X_val"] = X_val
-        st.session_state["X_test"] = X_test
-        st.session_state["y_train"] = y_train
-        st.session_state["y_val"] = y_val
-        st.session_state["y_test"] = y_test
-
-        # Tạo bảng hiển thị số lượng mẫu của từng tập dữ liệu
-        summary_df = pd.DataFrame({
-            "Tập dữ liệu": ["Train", "Validation", "Test"],
-            "Số lượng mẫu": [X_train.shape[0], X_val.shape[0], X_test.shape[0]]
-        })
-
-        st.success("✅ **Dữ liệu đã được chia thành công!**")
-        st.table(summary_df)
-
-
 def train_model():
     st.title("📉 Giảm chiều dữ liệu MNIST với PCA & t-SNE")
 
@@ -524,25 +340,27 @@ def train_model():
     y = ymt.reshape(-1) 
 
     # Tùy chọn thuật toán
-    method = st.radio("Chọn phương pháp giảm chiều", ["PCA", "t-SNE"], help="Phương pháp giảm chiều dữ liệu: PCA (Phân tích thành phần chính) hoặc t-SNE (Nhúng tạp chí Stochastic).")
-    n_components = st.slider("Số chiều giảm xuống", 2, 10, 2, help="Số chiều đầu ra của dữ liệu sau khi giảm chiều (\(n\)-components).")
+    method = st.radio("Chọn phương pháp giảm chiều", ["PCA", "t-SNE"], 
+                      help="Phương pháp giảm chiều dữ liệu: PCA giúp giảm chiều bằng cách giữ lại phương sai lớn nhất, trong khi t-SNE giúp nhúng dữ liệu vào không gian có số chiều thấp hơn dựa trên xác suất tương đồng.")
+    n_components = st.slider("Chọn số chiều giảm xuống", 2, 50, 2, 
+                             help="Số chiều đầu ra của dữ liệu sau khi giảm chiều. Giá trị này quyết định số lượng thành phần giữ lại trong dữ liệu sau khi áp dụng phương pháp giảm chiều.")
 
+    # Chọn cách trực quan hóa
+    visualization_dim = st.radio("Chọn cách trực quan hóa", ["2D", "3D"], 
+                                 help="Chọn cách hiển thị dữ liệu sau khi giảm chiều. 2D hiển thị trên mặt phẳng, 3D hiển thị trên không gian ba chiều.")
+    
     # Nếu chọn t-SNE, thêm tùy chọn Perplexity
     perplexity = 30
     if method == "t-SNE":
-        perplexity = st.slider("Chọn Perplexity", 5, 50, 30, step=5, help="Perplexity là tham số cân bằng giữa cục bộ và toàn cục trong t-SNE. Giá trị lớn hơn sẽ ưu tiên cấu trúc toàn cục hơn.")
+        perplexity = st.slider("Chọn Perplexity", 5, 50, 30, step=5, 
+                               help="Perplexity là tham số ảnh hưởng đến cách t-SNE cân bằng giữa cấu trúc cục bộ và toàn cục. Giá trị thấp giúp bảo toàn các cụm nhỏ, giá trị cao giúp phản ánh cấu trúc tổng thể.")
 
     # Thanh trượt chọn số lượng mẫu sử dụng từ MNIST
-    num_samples = st.slider("Chọn số lượng mẫu MNIST sử dụng:", min_value=1000, max_value=60000, value=5000, step=1000, help="Số lượng mẫu dữ liệu từ tập MNIST sẽ được sử dụng để huấn luyện.")
+    num_samples = st.slider("Chọn số lượng mẫu MNIST sử dụng:", min_value=1000, max_value=60000, value=5000, step=1000, 
+                            help="Số lượng mẫu dữ liệu từ tập MNIST sẽ được sử dụng để huấn luyện. Số mẫu lớn giúp cải thiện kết quả nhưng có thể làm tăng thời gian xử lý.")
 
     # Giới hạn số mẫu để tăng tốc
     X_subset, y_subset = X[:num_samples], y[:num_samples]
-
-    # Hàm giả định để thiết lập MLflow
-    def mlflow_input():
-        pass
-
-    mlflow_input()
 
     if st.button("🚀 Chạy giảm chiều"):
         with st.spinner("Đang xử lý..."):
@@ -569,20 +387,20 @@ def train_model():
             elif method == "t-SNE" and hasattr(reducer, "kl_divergence_"):
                 mlflow.log_metric("KL_divergence", reducer.kl_divergence_)
 
-            # Hiển thị kết quả nếu n_components <= 3
-            if n_components == 2:
+            # Hiển thị kết quả
+            if visualization_dim == "2D" and n_components >= 2:
                 fig = px.scatter(x=X_reduced[:, 0], y=X_reduced[:, 1], color=y_subset.astype(str),
                                  title=f"{method} giảm chiều xuống {n_components}D",
                                  labels={'x': "Thành phần 1", 'y': "Thành phần 2"})
                 st.plotly_chart(fig)
-            elif n_components == 3:
+            elif visualization_dim == "3D" and n_components >= 3:
                 fig = px.scatter_3d(x=X_reduced[:, 0], y=X_reduced[:, 1], z=X_reduced[:, 2],
                                      color=y_subset.astype(str),
                                      title=f"{method} giảm chiều xuống {n_components}D",
                                      labels={'x': "Thành phần 1", 'y': "Thành phần 2", 'z': "Thành phần 3"})
                 st.plotly_chart(fig)
             else:
-                st.warning(f"Số chiều = {n_components} lớn hơn 3, không thể hiển thị trực quan!")
+                st.warning(f"Không thể hiển thị trực quan với {visualization_dim} khi số chiều = {n_components}!")
 
             # Lưu kết quả vào MLflow
             os.makedirs("logs", exist_ok=True)
@@ -598,8 +416,6 @@ def train_model():
                 st.warning("⚠️ Chưa có đường link MLflow!")
 
             st.success("Hoàn thành!")
-
-
 
 
 def mlflow_input():
@@ -806,13 +622,12 @@ def PCA_T_sne():
     st.title("🖊️ MNIST PCA & t-SNE App")
 
     # Ensure the tab names are properly separated
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5= st.tabs([
     "📘 Lý thuyết PCA", 
     "📘 Lý thuyết T-sne", 
-    "📘 Review database", 
-    "📥 Tải dữ liệu", 
-    "🔀 Chia dữ liệu",
-    "Thông tin thu gọn chiều"
+    "📘 Review database",  
+    "🔀 Giảm chiều",
+    " 🚀 Thông tin thu gọn chiều"
     ])
 
     with tab1: 
@@ -823,14 +638,10 @@ def PCA_T_sne():
 
     with tab3: 
         data()    
-    
-    with tab4: 
-        up_load_db()
-    
-    with tab5: 
-        chia_du_lieu()
+
+    with tab4:
         train_model()
-    with tab6: 
+    with tab5: 
         display_mlflow_experiments()    
 
 def run(): 
