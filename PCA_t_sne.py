@@ -324,8 +324,11 @@ def data():
     - **Học sâu và phân loại hình ảnh**: Các mô hình học sâu, đặc biệt là mạng nơ-ron tích chập, được huấn luyện với bộ dữ liệu này để phân loại chữ số.
     """)
 
+
 def train_model():
     st.title("📉 Giảm chiều dữ liệu MNIST với PCA & t-SNE")
+    
+    mlflow_input()
 
     # Khởi tạo session state nếu chưa có
     if "run_name" not in st.session_state:
