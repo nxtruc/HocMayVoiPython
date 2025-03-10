@@ -336,6 +336,10 @@ def train_model():
     if "mlflow_url" not in st.session_state:
         st.session_state["mlflow_url"] = ""
 
+    # Nhập tên thí nghiệm
+    st.session_state["run_name"] = st.text_input("🔖 Đặt tên thí nghiệm:", value=st.session_state["run_name"], 
+                                                 help="Tên thí nghiệm giúp dễ dàng theo dõi các lần chạy trên MLflow.")
+
     # Load dữ liệu
     Xmt = np.load("X.npy")
     ymt = np.load("y.npy")
@@ -368,6 +372,7 @@ def train_model():
     if st.button("🚀 Chạy giảm chiều"):
         with st.spinner("Đang xử lý..."):
             mlflow.start_run(run_name=st.session_state["run_name"])
+            mlflow.log_param("experiment_name", st.session_state["run_name"])
             mlflow.log_param("method", method)
             mlflow.log_param("n_components", n_components)
             mlflow.log_param("num_samples", num_samples)
@@ -418,7 +423,6 @@ def train_model():
             else:
                 st.warning("⚠️ Chưa có đường link MLflow!")
 
-            st.success("Hoàn thành!")
 
 
 def mlflow_input():
