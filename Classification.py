@@ -704,17 +704,16 @@ def preprocess_canvas_image(canvas_result):
 
 
 def format_time_relative(timestamp_ms):
-    """Chuyển timestamp sang dạng 'X minutes ago'."""
-    if timestamp_ms:
-        created_at_dt = datetime.fromtimestamp(timestamp_ms / 1000)
-        return humanize.naturaltime(datetime.now() - created_at_dt)
-    return "N/A"
+    """Chuyển timestamp milliseconds thành thời gian dễ đọc."""
+    if timestamp_ms is None:
+        return "N/A"
+    dt = datetime.fromtimestamp(timestamp_ms / 1000)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 def display_mlflow_experiments():
     """Hiển thị danh sách Runs trong MLflow."""
     st.title("📊 MLflow Experiment Viewer")
 
-    # Kết nối MLflow (Tự động gọi mlflow_input)
     mlflow_input()
 
     experiment_name = "Classifications"
@@ -745,14 +744,14 @@ def display_mlflow_experiments():
         run_tags = run_data.data.tags
         run_name = run_tags.get("mlflow.runName", f"Run {run_id[:8]}")  # Lấy tên từ tags nếu có
         created_time = format_time_relative(run_data.info.start_time)
-        duration = run_data.info.end_time - run_data.info.start_time if run_data.info.end_time else "Đang chạy"
+        duration = (run_data.info.end_time - run_data.info.start_time) / 1000 if run_data.info.end_time else "Đang chạy"
         source = run_tags.get("mlflow.source.name", "Unknown")
 
         run_info.append({
             "Run Name": run_name,
             "Run ID": run_id,
             "Created": created_time,
-            "Duration": duration,
+            "Duration (s)": duration if isinstance(duration, str) else f"{duration:.1f}s",
             "Source": source
         })
 
@@ -798,13 +797,13 @@ def display_mlflow_experiments():
         st.subheader(f"📌 Thông tin Run: {selected_run_name}")
         st.write(f"**Run ID:** {selected_run_id}")
         st.write(f"**Trạng thái:** {selected_run.info.status}")
-        
-        start_time_ms = selected_run.info.start_time  # Thời gian lưu dưới dạng milliseconds
+
+        start_time_ms = selected_run.info.start_time
         if start_time_ms:
             start_time = datetime.fromtimestamp(start_time_ms / 1000).strftime("%Y-%m-%d %H:%M:%S")
         else:
             start_time = "Không có thông tin"
-        
+
         st.write(f"**Thời gian chạy:** {start_time}")
 
         # Hiển thị thông số đã log
@@ -946,7 +945,7 @@ def Classification():
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "📖 Lý thuyết Decision Tree", 
         "📖 Lý thuyết SVM", 
-        "🚀 Review database", 
+        "🚀", 
         "📥 Tải dữ liệu", 
         "⚙️ Huấn luyện", 
         "Tracking mlflow",
