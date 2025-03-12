@@ -5,8 +5,10 @@ import openml
 import joblib
 import shutil
 import pandas as pd
+import time
 import os
 import mlflow
+from datetime import datetime
 from sklearn import datasets
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
@@ -23,162 +25,295 @@ from streamlit_drawable_canvas import st_canvas
 from PIL import Image, ImageOps
 from mlflow.tracking import MlflowClient
 
-# Load dữ liệu MNIST
+
 def ly_thuyet_Decision_tree():
     st.header("📖 Lý thuyết về Decision Tree") 
-    st.header("🌳 Giới thiệu về Decision Tree")
     st.markdown(" ### 1️⃣ Decision Tree là gì?")
     st.write("""
     Decision Tree (Cây quyết định) là một thuật toán học có giám sát được sử dụng trong **phân loại (classification)** và **hồi quy (regression)**.
     Nó hoạt động bằng cách chia dữ liệu thành các nhóm nhỏ hơn dựa trên các điều kiện được thiết lập tại các **nút (nodes)** của cây.
     """) 
     
-    st.markdown(" ### 📌 Cấu trúc của Decision Tree") 
-    image_url = "https://trituenhantao.io/wp-content/uploads/2019/06/dt.png"
-    st.image(image_url, caption="Ví dụ về cách Cây quyết định phân chia dữ liệu", use_column_width=True)
+    image_url = "https://machinelearningcoban.com/assets/34_id3/dt_ex1.png"
+    article_url = "https://machinelearningcoban.com/2018/01/14/id3/"
 
-    st.write("""
-    - **Nút gốc (Root Node)**: Là điểm bắt đầu của cây, chứa toàn bộ dữ liệu.
-    - **Nút quyết định (Decision Nodes)**: Các nút trung gian nơi dữ liệu được chia nhỏ dựa trên một điều kiện.
-    - **Nhánh (Branches)**: Các đường nối giữa các nút, thể hiện lựa chọn có thể xảy ra.
-    - **Nút lá (Leaf Nodes)**: Điểm cuối của cây, đại diện cho quyết định cuối cùng hoặc nhãn dự đoán.
+    # Hiển thị ảnh có thể nhấp vào, căn giữa và thêm caption
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;">Ví dụ về việc ra quyết định dựa trên các câu hỏi.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    ) 
+
+    st.markdown(" ### 2️⃣ ý tưởng") 
+
+    st.markdown(
+    """
+    ##### 2.1 Vấn đề cần giải quyết:  
+    - Khi xây dựng cây quyết định, ta cần xác định thứ tự thuộc tính được sử dụng để chia dữ liệu.  
+    - Với bài toán có nhiều thuộc tính và mỗi thuộc tính có nhiều giá trị, việc tìm giải pháp tối ưu là không khả thi.  
+    - Thay vì tìm nghiệm tối ưu toàn cục, ta sử dụng một phương pháp **tham lam (greedy)**:  
+      → Chọn thuộc tính **tốt nhất** tại mỗi bước dựa trên một tiêu chí nào đó.
+    """
+    )   
+    image_url = "https://www.mdpi.com/entropy/entropy-27-00035/article_deploy/html/images/entropy-27-00035-g001-550.jpg"
+    article_url = "http://mdpi.com/1099-4300/27/1/35"
+
+    # Hiển thị ảnh có thể nhấp vào, căn giữa và thêm caption
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;"><i>Set of decision trees 𝑆={{𝑇𝑟𝑒𝑒1, 𝑇𝑟𝑒𝑒2}}</i></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )   
+    st.markdown(
+    """
+    ##### 2.2 Quá trình chia nhỏ dữ liệu:
+    - Với mỗi thuộc tính được chọn, dữ liệu được chia thành các **child node** theo giá trị của thuộc tính đó.
+    - Sau đó, tiếp tục lặp lại quá trình này cho từng **child node**.
+    """
+    )
+    image_url = "https://cdn.analyticsvidhya.com/wp-content/uploads/2024/09/ns1.webp"
+    article_url = "https://www.analyticsvidhya.com/blog/2020/06/4-ways-split-decision-tree/"
+
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;"><i>Ví dụ quá trình chia nhỏ dữ liệu</i></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )   
+    st.markdown(
+    """
+    ##### 2.4 Hàm số Entropy: 
+    - Entropy là một khái niệm trong lý thuyết thông tin, được sử dụng để đo **độ hỗn loạn (impurity)** hoặc **độ không chắc chắn** của một tập dữ liệu. 
+    - Trong cây quyết định (Decision Tree), entropy giúp đánh giá chất lượng của một phép chia dữ liệu.
+    """
+    )
+    st.latex(r"H(p) = - \sum_{i=1}^{n} p_i \log(p_i)")
+    st.markdown(
+    """
+    Trong đó:
+    - log có thể là logarit tự nhiên hoặc log cơ số 2.
+    - Quy ước: \\( 0 \log 0 = 0 \\).
+    """
+    )
+
+    st.markdown(
+    """
+    ##### 🔍 Ý nghĩa của Entropy trong phân phối xác suất:
     """)
 
-    st.markdown(" ### 🔍 Cách hoạt động của Decision Tree")
-    st.write("""
-    1. **Chọn đặc trưng tốt nhất để chia dữ liệu** bằng các tiêu chí như:
-    - Gini Impurity: Đánh giá độ lẫn lộn của tập dữ liệu.
-    - Entropy (dùng trong ID3): Xác định mức độ không chắc chắn.
-    - Reduction in Variance (dùng cho hồi quy).
-    2. **Tạo các nhánh con** từ đặc trưng được chọn.
-    3. **Lặp lại quy trình** trên từng nhánh con cho đến khi đạt điều kiện dừng.
-    4. **Dự đoán dữ liệu mới** bằng cách đi theo cây từ gốc đến lá.
-    """)
+    st.markdown(
+        """
+        - Nếu **phân phối tinh khiết** (chỉ có một giá trị có xác suất 1, còn lại là 0):  
+        → **Entropy = 0**, tức **không có sự không chắc chắn**.
+        - Nếu **phân phối vẩn đục nhất** (các giá trị có xác suất bằng nhau, ví dụ p1 = p2 = 0.5)  
+        → **Entropy đạt giá trị cao nhất**, tức **độ không chắc chắn lớn nhất**.
+        """
+    )
+    image_url = "https://machinelearningcoban.com/assets/34_id3/entropy.png"
+    article_url = "https://machinelearningcoban.com/2018/01/14/id3/"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;"><i>Ví dụ Đồ thị của hàm entropy với 
+            n
+            =
+            2
+            </i></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )   
 
-    st.markdown("### 🌳 Công Thức Chính của Cây Quyết Định và Cách Áp Dụng")
+    st.markdown(" ### 3️⃣ Thuật toán ID3")
+    st.markdown("##### Tính toán Entropy tại một Node")
+    st.markdown(
+        """
+        Với tập dữ liệu **S** gồm **N** điểm dữ liệu thuộc **C** lớp, entropy tại node được tính bằng:
+        """
+    )
+    st.latex(r"H(S) = - \sum_{c=1}^{C} \frac{N_c}{N} \log \left(\frac{N_c}{N} \right)")
+    st.markdown("Trong đó, \\( N_c \\) là số điểm thuộc class **c**.")
 
-    st.subheader("📌 1. Entropy – Độ hỗn loạn của dữ liệu")
-    st.write("Entropy đo lường mức độ hỗn loạn trong dữ liệu. Nếu một tập dữ liệu càng đồng nhất, entropy càng thấp.")
-    st.latex(r"H(S) = - \sum_{i=1}^{c} p_i \log_2 p_i")
+    st.markdown("##### Entropy sau khi phân chia theo thuộc tính **x**")
+    st.markdown(
+        """
+        Khi chọn thuộc tính **x**, tập **S** được chia thành **K** child node \\( S_1, S_2, ..., S_K \\) 
+        với kích thước tương ứng \\( m_1, m_2, ..., m_K \\). Entropy tổng có trọng số sau khi phân chia:
+        """
+    )
+    st.latex(r"H(x,S) = \sum_{k=1}^{K} \frac{m_k}{N} H(S_k)")
+    st.markdown("Việc lấy trọng số là cần thiết vì mỗi node có số lượng điểm dữ liệu khác nhau.")
 
-    st.write("""
-    - Nếu tất cả dữ liệu thuộc cùng một lớp → Entropy = 0 (thuần khiết).
-    - Nếu dữ liệu được phân bố đều giữa các lớp → Entropy đạt giá trị cao nhất.
-    """)
+    st.markdown("##### Information Gain – Tiêu chí chọn thuộc tính")
+    st.markdown("Để xác định thuộc tính nào giúp giảm entropy tốt nhất, ta tính **Information Gain**:")
+    st.latex(r"G(x,S) = H(S) - H(x,S)")
 
-    st.subheader("📌 2. Information Gain – Mức độ giảm độ hỗn loạn sau khi chia dữ liệu")
-    st.latex(r"IG = H(S) - \sum_{j=1}^{k} \frac{|S_j|}{|S|} H(S_j)")
+    st.markdown("ID3 chọn thuộc tính \\( x^* \\) sao cho **Information Gain** lớn nhất:")
+    st.latex(r"x^* = \arg\max_{x} G(x,S) = \arg\min_{x} H(x,S)")
+    st.markdown("Nghĩa là ta chọn thuộc tính giúp entropy giảm nhiều nhất sau khi phân chia.")
 
-    st.write("""
-    - IG càng cao → thuộc tính đó giúp phân loại dữ liệu tốt hơn.
-    - IG thấp → thuộc tính đó không có nhiều giá trị trong việc phân tách dữ liệu.
-    """)
+    st.markdown("##### Khi nào dừng phân chia?")
+    st.markdown(
+        """
+        ID3 dừng phân chia khi:
+        - ✅ Tất cả dữ liệu trong node thuộc cùng một class.
+        - ✅ Không còn thuộc tính nào để chia tiếp.
+        - ✅ Số lượng điểm dữ liệu trong node quá nhỏ.
+        """
+    )
 
-    st.subheader("📌 3. Gini Impurity – Đo lường mức độ hỗn loạn thay thế Entropy")
-    st.latex(r"Gini(S) = 1 - \sum_{i=1}^{c} p_i^2")
-
-    st.write("""
-    - Gini = 0 → tập dữ liệu hoàn toàn thuần khiết.
-    - Gini càng cao → dữ liệu càng hỗn loạn.
-    """)
-
-    st.subheader("💡 Cách Áp Dụng để Xây Dựng Decision Tree")
-    st.write("""
-    1. Tính Entropy hoặc Gini của tập dữ liệu ban đầu.
-    2. Tính Entropy hoặc Gini của từng tập con sau khi chia theo từng thuộc tính.
-    3. Tính Information Gain cho từng thuộc tính.
-    4. Chọn thuộc tính có Information Gain cao nhất để chia nhánh.
-    5. Lặp lại quy trình trên cho đến khi tất cả dữ liệu trong các nhánh đều thuần khiết hoặc đạt điều kiện dừng.
-    """)
-
-    st.markdown("""
-    **📌 Lưu ý:**  
-    - Nếu cây quá sâu → có thể gây overfitting, cần sử dụng cắt tỉa (pruning).  
-    - Decision Tree có thể sử dụng với cả phân loại (Classification) và hồi quy (Regression).  
-    """)
-
-    st.write("🚀 Cây quyết định là một thuật toán mạnh mẽ và dễ hiểu, nhưng cần điều chỉnh để tránh overfitting và tối ưu hiệu suất!") 
-    
-    
-    
 def ly_thuyet_SVM():
-    # Tiêu đề chính
-    st.title("📖 Lý Thuyết Về Support Vector Machine (SVM)")
-    st.image("https://neralnetwork.wordpress.com/wp-content/uploads/2018/01/svm1.png", caption="Hình minh họa SVM")
+    st.header("📖 Lý thuyết về SVM")
+    st.markdown(" ### 1️⃣ SVM là gì?")
+    st.write("""
+    - Support Vector Machine (SVM) là một thuật toán học có giám sát dùng cho **phân loại** và hồi quy.    
+    - Mục tiêu của SVM là tìm ra **siêu phẳng** (hyperplane) tối ưu để phân tách dữ liệu thuộc các lớp khác nhau với một **khoảng cách lề** (margin) lớn nhất.
+        """
+    )
 
-    st.markdown("""
-    Support Vector Machine (SVM) là một thuật toán học máy mạnh mẽ thường được sử dụng cho bài toán **phân loại (classification)** và **hồi quy (regression)**. 
-    Nó hoạt động dựa trên nguyên lý tìm **siêu phẳng (hyperplane)** tối ưu để phân tách dữ liệu.
+    image_url = "https://neralnetwork.wordpress.com/wp-content/uploads/2018/01/svm1.png"
+    article_url = "https://neralnetwork.wordpress.com/2018/05/11/thuat-toan-support-vector-machine-svm/"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;"><i>minh họa về SVM
+            </i></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )   
+    st.markdown(" ### 2️⃣ Ý tưởng của SVM") 
+    st.markdown(" ##### 2.1 Tìm siêu phẳng phân tách tối ưu")
+    st.write(
+        "Một siêu phẳng (hyperplane) trong không gian đặc trưng có dạng:\n"
+        "$w \cdot x + b = 0$\n"
+        "Trong đó:\n"
+        "- $w$ là vector pháp tuyến của siêu phẳng.\n"
+        "- $x$ là điểm dữ liệu.\n"
+        "- $b$ là hệ số điều chỉnh độ dịch chuyển của siêu phẳng.\n"
+        "\n"
+    )
+    image_url = "https://www.researchgate.net/publication/244858164/figure/fig3/AS:670028080898057@1536758551648/An-example-of-the-optimal-separating-hyperplane-of-support-vector-machine-SVM-with-the.png"
+    article_url = "https://www.researchgate.net/figure/An-example-of-the-optimal-separating-hyperplane-of-support-vector-machine-SVM-with-the_fig3_244858164"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;"><i>minh họa quá trình tìm siêu phẳng phân tách tối ưu
+            </i></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )   
+    st.write("Mục tiêu của SVM là tìm siêu phẳng có khoảng cách lớn nhất tới các điểm gần nhất thuộc hai lớp khác nhau (các support vectors).\n"
+    "Khoảng cách này được gọi là lề (margin).")
+
+    st.markdown(" ##### 2.2 Tối đa hóa lề (Maximum Margin)")
+    st.write(
+        "Lề (margin) là khoảng cách giữa siêu phẳng và các điểm dữ liệu gần nhất thuộc hai lớp.\n"
+        "SVM cố gắng tối đa hóa lề này để đảm bảo mô hình có khả năng tổng quát hóa tốt nhất."
+    )
+
+    st.latex(r"""
+    D = \frac{|w^T x_0 + b|}{||w||_2}
     """)
 
-    # 1. Nguyên lý hoạt động
-    st.header("1. Nguyên Lý Hoạt Động của SVM")
+    st.markdown("##### Trong đó:")
+    st.markdown("- $w^T x_0$ là tích vô hướng giữa vector pháp tuyến của hyperplane và điểm $x_0$.")
+    st.markdown("- $||w||_2$ là độ dài (norm) của vector pháp tuyến $w$, được tính bằng công thức:")
 
-    st.subheader("📌 1.1. Tìm Siêu Phẳng Tối Ưu")
-    st.markdown("""
-    - Một **siêu phẳng (hyperplane)** là một đường (trong không gian 2D) hoặc một mặt phẳng (trong không gian 3D) dùng để phân tách dữ liệu thành các nhóm.
-    - SVM tìm **siêu phẳng tối ưu** sao cho khoảng cách từ siêu phẳng đến các điểm dữ liệu gần nhất (**support vectors**) là lớn nhất.
+    st.latex(r"""
+    ||w||_2 = \sqrt{w_1^2 + w_2^2 + \dots + w_n^2}
     """)
 
-    st.write("🚀 **Công thức siêu phẳng:**")
-    st.latex(r"w \cdot x + b = 0")
+    st.markdown("- Dấu $| \cdot |$ biểu thị giá trị tuyệt đối, giúp đảm bảo khoảng cách luôn là giá trị không âm.")
 
-    st.markdown("""
-    Trong đó:
-    - \( w \) là **vector trọng số**,
-    - \( x \) là **vector dữ liệu đầu vào**,
-    - \( b \) là **bias**.
-    """)
+    image_url = "https://www.researchgate.net/publication/226587707/figure/fig3/AS:669184333725696@1536557386160/Margin-maximization-principle-the-basic-idea-of-Support-Vector-Machine.ppm"
+    article_url = "https://www.researchgate.net/figure/Margin-maximization-principle-the-basic-idea-of-Support-Vector-Machine_fig3_226587707"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;"><i>minh họa tìm khoảng cách từ điểm đến siêu phẳng
+            </i></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )   
 
-    st.subheader("📌 1.2. Khoảng Cách Lề (Margin)")
-    st.markdown("""
-    - **Soft Margin SVM**: Chấp nhận một số điểm bị phân loại sai nhưng tăng khả năng tổng quát hóa (**giảm overfitting**).
-    - **Hard Margin SVM**: Yêu cầu phân tách hoàn hảo, không cho phép lỗi nhưng dễ bị **overfitting**.
-    """)
+    st.markdown(" ##### 2.3 Khi dữ liệu không tách được tuyến tính")
+    st.write(
+        "Trong trường hợp dữ liệu không thể phân tách bằng một đường thẳng (tức là không tuyến tính), \n"
+        "SVM sử dụng hàm kernel (kernel trick) để ánh xạ dữ liệu sang không gian bậc cao hơn, nơi chúng có thể phân tách tuyến tính."
+    )
 
-    # 2. Hàm mục tiêu
-    st.header("2. Hàm Mục Tiêu trong SVM")
-    st.markdown("""
-    Mục tiêu của SVM là tìm \( w \) và \( b \) để tối đa hóa khoảng cách lề \( \frac{2}{||w||} \), tương đương với bài toán tối ưu:
-    """)
+    st.markdown(" ##### Các kernel phổ biến:")
+    st.markdown("- **Linear Kernel**: Sử dụng khi dữ liệu có thể phân tách tuyến tính.")
+    st.markdown("- **Polynomial Kernel**: Ánh xạ dữ liệu sang không gian bậc cao hơn.")
+    st.markdown("- **RBF (Radial Basis Function) Kernel**: Tốt cho dữ liệu phi tuyến tính.")
+    st.markdown("- **Sigmoid Kernel**: Mô phỏng như mạng neural.")
 
-    st.latex(r"\min_{w, b} \frac{1}{2} ||w||^2")
-
-    st.markdown("Sao cho:")
-
-    st.latex(r"y_i (w \cdot x_i + b) \geq 1, \forall i")
-
-    st.markdown("""
-    Trong đó:
-    - \( y_i \) là **nhãn của dữ liệu** (1 hoặc -1),
-    - \( x_i \) là **điểm dữ liệu**.
-    """)
-
-    # 3. Kernel Trick
-    st.header("3. Kernel Trick – Mở Rộng SVM Cho Dữ Liệu Phi Tuyến")
-    st.markdown("""
-    Khi dữ liệu không thể phân tách tuyến tính, SVM sử dụng **hàm kernel** để ánh xạ dữ liệu vào không gian chiều cao hơn, nơi có thể phân tách tuyến tính.
-
-    📌 **Một số loại Kernel phổ biến**:
-    """)
-
-    st.subheader("1️⃣ Linear Kernel")
-    st.latex(r"K(x_i, x_j) = x_i \cdot x_j")
-    st.markdown("👉 Sử dụng khi dữ liệu có thể phân tách tuyến tính.")
-
-    st.subheader("2️⃣ Polynomial Kernel")
-    st.latex(r"K(x_i, x_j) = (x_i \cdot x_j + c)^d")
-    st.markdown("👉 Phù hợp với dữ liệu có ranh giới phi tuyến.")
-
-    st.subheader("3️⃣ Radial Basis Function (RBF) Kernel")
-    st.latex(r"K(x_i, x_j) = \exp(- \gamma ||x_i - x_j||^2)")
-    st.markdown("👉 Phổ biến nhất vì có thể xử lý **mọi loại dữ liệu**.")
-
-    st.write("🚀 SVM là một thuật toán mạnh mẽ, nhưng cần điều chỉnh đúng tham số để đạt hiệu suất tối ưu!")
-
+    st.markdown(" ##### 2.4 Vị trí tương đối với một siêu phẳng ")
+    st.markdown(
+    """
+    **Nếu** $w^T x + b > 0$ **:**
+    - Điểm $x$ nằm ở **phía dương** của siêu phẳng.
+    - Trong hình, các điểm thuộc lớp dương (dấu "+") nằm ở vùng này.
+    
+    **Nếu** $w^T x + b < 0$ **:**
+    - Điểm $x$ nằm ở **phía âm** của siêu phẳng.
+    - Trong hình, các điểm thuộc lớp âm (dấu "-") nằm ở vùng này.
+    
+    **Nếu** $w^T x + b = 0$ **:**
+    - Điểm $x$ nằm **trên siêu phẳng phân tách**.
+    - Trong SVM, siêu phẳng này là đường quyết định, phân chia dữ liệu thành hai lớp khác nhau.
+    
+    Hình bên dưới minh họa cách siêu phẳng phân chia dữ liệu.
+    """
+    )
+    image_url = "https://machinelearningcoban.com/assets/19_svm/svm2.png"
+    article_url = "https://machinelearningcoban.com/2017/04/09/smv/"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="500">
+            </a>
+            <p style="font-size: 14px; color: gray;"><i>
+            </i></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )  
 
 def data():
-    st.header("MNIST Dataset")
     st.title("Tổng quan về tập dữ liệu MNIST")
 
     st.header("1. Giới thiệu")
@@ -216,7 +351,6 @@ def data():
     st.caption("Ứng dụng hiển thị thông tin về tập dữ liệu MNIST bằng Streamlit 🚀")
     
 
-
 def up_load_db():
     # Tiêu đề
     st.header("📥 Tải Dữ Liệu")
@@ -237,13 +371,23 @@ def up_load_db():
             st.markdown("#### 📂 Tải dữ liệu MNIST từ OpenML")
             if st.button("Tải dữ liệu MNIST", key="download_mnist_button"):
                 st.write("🔄 Đang tải dữ liệu MNIST từ OpenML...")
+
+                progress_bar = st.progress(0)
+                progress_text = st.empty()
+                
+                for percent_complete in range(100):
+                    time.sleep(0.05 + (27 / 100))  # Thêm 27 giây vào tiến trình tải
+                    progress_bar.progress(percent_complete + 1)
+                    progress_text.text(f"⏳ Đang tải... {percent_complete + 1}%")
                 
                 # Tải dữ liệu MNIST từ file .npy
                 X = np.load("X.npy")
                 y = np.load("y.npy")
-                
+
                 st.success("✅ Dữ liệu MNIST đã được tải thành công!")
                 st.session_state.data = (X, y)  # Lưu dữ liệu vào session_state
+                progress_bar.empty()
+                progress_text.empty()
 
         # Nếu chọn upload dữ liệu từ máy
         else:
@@ -286,6 +430,13 @@ def up_load_db():
             
             st.markdown("### Kết quả sau khi tiền xử lý")
             fig, axes = plt.subplots(1, 5, figsize=(10, 2))
+            progress_bar = st.progress(0)
+            progress_text = st.empty()
+            
+            for percent_complete in range(100):
+                time.sleep(0.02 + (27 / 100))  # Thêm 27 giây vào tiến trình tiền xử lý
+                progress_bar.progress(percent_complete + 1)
+                progress_text.text(f"⏳ Đang xử lý... {percent_complete + 1}%")
             
             if preprocess_option == "Chuẩn hóa dữ liệu (Normalization)":
                 X_normalized = MinMaxScaler().fit_transform(X_reshaped)
@@ -318,86 +469,86 @@ def up_load_db():
                     axes[i].axis('off')
                 st.success("✅ Không thực hiện tiền xử lý!")
             
+            progress_bar.empty()
+            progress_text.empty()
             st.pyplot(fig)
     
     else:
         st.warning("🔸 Vui lòng tải dữ liệu trước khi tiếp tục làm việc.")
 
+
 def chia_du_lieu():
     st.title("📌 Chia dữ liệu Train/Test")
 
-    # Kiểm tra xem dữ liệu đã được tải hay chưa
-    if not os.path.exists("X.npy") or not os.path.exists("y.npy"):
-        st.error("❌ Dữ liệu chưa được tải! Vui lòng tải dữ liệu trước khi chia.")
-        return
-
-    # Đọc dữ liệu từ file
+    # Đọc dữ liệu
     X = np.load("X.npy")
     y = np.load("y.npy")
     total_samples = X.shape[0]
 
-    # Nếu dữ liệu đã được chia trước đó, hiển thị thông tin và không chia lại
-    if "X_train" in st.session_state:
-        st.success("✅ **Dữ liệu đã được chia, không cần chạy lại!**")
+    
+    # Nếu chưa có cờ "data_split_done", đặt mặc định là False
+    if "data_split_done" not in st.session_state:
+        st.session_state.data_split_done = False  
 
-        # Hiển thị bảng dữ liệu đã chia
-        summary_df = pd.DataFrame({
-            "Tập dữ liệu": ["Train", "Validation", "Test"],
-            "Số lượng mẫu": [
-                len(st.session_state["X_train"]),
-                len(st.session_state["X_val"]),
-                len(st.session_state["X_test"])
-            ]
-        })
-        st.table(summary_df)
-        return
-
-    # Thanh chọn số lượng ảnh để train
+    # Thanh kéo chọn số lượng ảnh để train
     num_samples = st.slider("📌 Chọn số lượng ảnh để train:", 1000, total_samples, 10000)
-
-    # Thanh chọn % dữ liệu Test
+    
+    # Thanh kéo chọn tỷ lệ Train/Test
     test_size = st.slider("📌 Chọn % dữ liệu Test", 10, 50, 20)
-    remaining_size = 100 - test_size  # Tính phần còn lại của tập Train
-
-    # Thanh chọn % dữ liệu Validation (trong tập Train)
+    remaining_size = 100 - test_size
     val_size = st.slider("📌 Chọn % dữ liệu Validation (trong phần Train)", 0, 50, 15)
+    st.write(f"📌 **Tỷ lệ phân chia:** Test={test_size}%, Validation={val_size}%, Train={remaining_size - val_size}%")
 
-    st.markdown(f"### 📌 **Tỷ lệ phân chia:** Test={test_size}%, Validation={val_size}%, Train={remaining_size - val_size}%")
-
-    if st.button("✅ Xác nhận & Lưu"):
-        # Chọn tập dữ liệu theo số lượng mẫu mong muốn
-        X_selected, _, y_selected, _ = train_test_split(X, y, train_size=num_samples, stratify=y, random_state=42)
+    if st.button("✅ Xác nhận & Lưu") and not st.session_state.data_split_done:
+        st.session_state.data_split_done = True  # Đánh dấu đã chia dữ liệu
+        
+        # Chia dữ liệu theo tỷ lệ đã chọn
+        X_selected, _, y_selected, _ = train_test_split(
+            X, y, train_size=num_samples, stratify=y, random_state=42
+        )
 
         # Chia train/test
-        X_train_full, X_test, y_train_full, y_test = train_test_split(X_selected, y_selected, 
-                                                                      test_size=test_size / 100, 
-                                                                      stratify=y_selected, random_state=42)
+        stratify_option = y_selected if len(np.unique(y_selected)) > 1 else None
+        X_train_full, X_test, y_train_full, y_test = train_test_split(
+            X_selected, y_selected, test_size=test_size/100, stratify=stratify_option, random_state=42
+        )
 
         # Chia train/val
-        X_train, X_val, y_train, y_val = train_test_split(X_train_full, y_train_full, 
-                                                          test_size=val_size / (100 - test_size), 
-                                                          stratify=y_train_full, random_state=42)
+        stratify_option = y_train_full if len(np.unique(y_train_full)) > 1 else None
+        X_train, X_val, y_train, y_val = train_test_split(
+            X_train_full, y_train_full, test_size=val_size / (100 - test_size),
+            stratify=stratify_option, random_state=42
+        )
 
-        # Lưu dữ liệu vào session_state để sử dụng sau này
-        st.session_state["X_train"] = X_train
-        st.session_state["X_val"] = X_val
-        st.session_state["X_test"] = X_test
-        st.session_state["y_train"] = y_train
-        st.session_state["y_val"] = y_val
-        st.session_state["y_test"] = y_test
+        # Lưu dữ liệu vào session_state
+        st.session_state.total_samples= num_samples
+        st.session_state.X_train = X_train
+        st.session_state.X_val = X_val
+        st.session_state.X_test = X_test
+        st.session_state.y_train = y_train
+        st.session_state.y_val = y_val
+        st.session_state.y_test = y_test
+        st.session_state.test_size = X_test.shape[0]
+        st.session_state.val_size = X_val.shape[0]
+        st.session_state.train_size = X_train.shape[0]
 
-        # Tạo bảng hiển thị số lượng mẫu của từng tập dữ liệu
+        # Hiển thị thông tin chia dữ liệu
         summary_df = pd.DataFrame({
             "Tập dữ liệu": ["Train", "Validation", "Test"],
             "Số lượng mẫu": [X_train.shape[0], X_val.shape[0], X_test.shape[0]]
         })
+        st.success("✅ Dữ liệu đã được chia thành công!")
+        st.table(summary_df)
 
-        st.success("✅ **Dữ liệu đã được chia thành công!**")
-        st.table(summary_df)  # Hiển thị bảng dữ liệu
+    elif st.session_state.data_split_done:
+        st.info("✅ Dữ liệu đã được chia, không cần chạy lại.")
+
+
 
 def train():
     """Huấn luyện mô hình Decision Tree hoặc SVM và lưu trên MLflow."""
     mlflow_input()
+    
     # 📥 Kiểm tra dữ liệu
     if not all(key in st.session_state for key in ["X_train", "y_train", "X_test", "y_test"]):
         st.error("⚠️ Chưa có dữ liệu! Hãy chia dữ liệu trước.")
@@ -411,97 +562,88 @@ def train():
 
     st.header("⚙️ Chọn mô hình & Huấn luyện")
 
+    # 📌 Đặt tên thí nghiệm
+    experiment_name = st.text_input("📌 Đặt tên thí nghiệm:", "default_experiment", 
+                                    help="Tên của thí nghiệm để dễ dàng quản lý trên MLflow.")
+
     # 📌 Lựa chọn mô hình
     model_choice = st.selectbox("Chọn mô hình:", ["Decision Tree", "SVM"])
     
     if model_choice == "Decision Tree":
         criterion = st.selectbox("Criterion (Hàm mất mát: Gini/Entropy) ", ["gini", "entropy"])
-        max_depth = st.slider("max_depth (\(d\))", 1, 20, 5, help="Giới hạn độ sâu của cây để tránh overfitting.")
+        max_depth = st.slider("max_depth", 1, 20, 5, help="Giới hạn độ sâu của cây để tránh overfitting.")
         model = DecisionTreeClassifier(criterion=criterion, max_depth=max_depth)
     else:
-        C = st.slider("C (Hệ số điều chuẩn \(C\))", 0.1, 10.0, 1.0)
-        kernel = st.selectbox("Kernel (Hàm nhân \(K\))", ["linear", "rbf", "poly", "sigmoid"])
+        C = st.slider("C (Hệ số điều chuẩn)", 0.1, 10.0, 1.0)
+        kernel = st.selectbox("Kernel (Hàm nhân)", ["linear", "rbf", "poly", "sigmoid"])
         model = SVC(C=C, kernel=kernel)
 
     # 📌 Chọn số folds cho KFold Cross-Validation
-    k_folds = st.slider("Số folds (\(k\))", 2, 10, 5, help="Số tập chia để đánh giá mô hình.")
+    k_folds = st.slider("Số folds", 2, 10, 5, help="Số tập chia để đánh giá mô hình.")
 
     # 🚀 Bắt đầu huấn luyện
     if st.button("Huấn luyện mô hình"):
-        if "mlflow_url" not in st.session_state:
-            st.session_state["mlflow_url"] = "https://dagshub.com/Snxtruc/HocMayVoiPython.mlflow"
+        with st.spinner("🔄 Đang huấn luyện mô hình..."):
+            progress_bar = st.progress(0)  # Tạo thanh tiến trình
+            with mlflow.start_run(run_name=experiment_name):
+                kf = KFold(n_splits=k_folds, shuffle=True, random_state=42)
+                cv_scores = []
 
-        with mlflow.start_run():
-            kf = KFold(n_splits=k_folds, shuffle=True, random_state=42)
-            cv_scores = []
-            
-            # Huấn luyện trên tập Cross-Validation
-            for fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):
-                X_train_fold, X_val_fold = X_train[train_idx], X_train[val_idx]
-                y_train_fold, y_val_fold = y_train[train_idx], y_train[val_idx]
+                # Vòng lặp Cross-Validation
+                for fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):
+                    X_train_fold, X_val_fold = X_train[train_idx], X_train[val_idx]
+                    y_train_fold, y_val_fold = y_train[train_idx], y_train[val_idx]
 
-                model.fit(X_train_fold, y_train_fold)
-                val_pred = model.predict(X_val_fold)
-                val_acc = accuracy_score(y_val_fold, val_pred)
-                cv_scores.append(val_acc)
-                mlflow.log_metric("cv_accuracy", val_acc, step=fold)
+                    model.fit(X_train_fold, y_train_fold)
+                    val_pred = model.predict(X_val_fold)
+                    val_acc = accuracy_score(y_val_fold, val_pred)
+                    cv_scores.append(val_acc)
+                    mlflow.log_metric("cv_accuracy", val_acc, step=fold)
 
-            cv_accuracy_mean = np.mean(cv_scores)
-            cv_accuracy_std = np.std(cv_scores)
+                    # Giả lập thời gian chạy từng fold
+                    time.sleep(1)  
+                    
+                    # Cập nhật thanh tiến trình chính xác
+                    progress_bar.progress(int((fold + 1) / k_folds * 70))
 
-            # Hiển thị kết quả Cross-Validation
-            st.success(f"✅ **Cross-Validation Accuracy:** {cv_accuracy_mean:.4f} ± {cv_accuracy_std:.4f}")
+                # Kết quả CV
+                cv_accuracy_mean = np.mean(cv_scores)
+                cv_accuracy_std = np.std(cv_scores)
+                st.success(f"✅ **Cross-Validation Accuracy:** {cv_accuracy_mean:.4f} ± {cv_accuracy_std:.4f}")
 
-            # Huấn luyện trên tập Test Set
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_test)
-            test_acc = accuracy_score(y_test, y_pred)
-            mlflow.log_metric("test_accuracy", test_acc)
+                # Huấn luyện trên toàn bộ tập train
+                st.info("🔄 Đang huấn luyện mô hình chính...")
+                time.sleep(1)
+                model.fit(X_train, y_train)
 
-            # Hiển thị kết quả Test Set
-            st.success(f"✅ **Độ chính xác trên test set:** {test_acc:.4f}")
+                progress_bar.progress(85)  # Tiến trình sau CV
 
-            # Ghi log lên MLflow
-            mlflow.log_param("model", model_choice)
-            mlflow.log_param("k_folds", k_folds)
-            if model_choice == "Decision Tree":
-                mlflow.log_param("criterion", criterion)
-                mlflow.log_param("max_depth", max_depth)
-            elif model_choice == "SVM":
-                mlflow.log_param("C", C)
-                mlflow.log_param("kernel", kernel)
+                # Dự đoán trên test set
+                y_pred = model.predict(X_test)
+                test_acc = accuracy_score(y_test, y_pred)
+                mlflow.log_metric("test_accuracy", test_acc)
+                st.success(f"✅ **Độ chính xác trên test set:** {test_acc:.4f}")
 
-            mlflow.log_metric("cv_accuracy_mean", cv_accuracy_mean)
-            mlflow.log_metric("cv_accuracy_std", cv_accuracy_std)
-            mlflow.sklearn.log_model(model, model_choice.lower())
+                progress_bar.progress(100)  # Hoàn thành tiến trình
 
-            # 📌 Lưu mô hình vào session_state
-            if "models" not in st.session_state:
-                st.session_state["models"] = []
+                # Log tham số vào MLflow
+                mlflow.log_param("experiment_name", experiment_name)
+                mlflow.log_param("model", model_choice)
+                mlflow.log_param("k_folds", k_folds)
+                if model_choice == "Decision Tree":
+                    mlflow.log_param("criterion", criterion)
+                    mlflow.log_param("max_depth", max_depth)
+                else:
+                    mlflow.log_param("C", C)
+                    mlflow.log_param("kernel", kernel)
 
-            model_name = model_choice.lower().replace(" ", "_")
-            if model_choice == "Decision Tree":
-                model_name += f"_{criterion}_depth{max_depth}"
-            elif model_choice == "SVM":
-                model_name += f"_{kernel}"
+                mlflow.log_metric("cv_accuracy_mean", cv_accuracy_mean)
+                mlflow.log_metric("cv_accuracy_std", cv_accuracy_std)
+                mlflow.sklearn.log_model(model, model_choice.lower())
 
-            # Xử lý trùng lặp tên mô hình
-            existing_names = {m["name"] for m in st.session_state["models"]}
-            count = 1
-            while model_name in existing_names:
-                model_name = f"{model_name}_{count}"
-                count += 1
+                st.success(f"✅ Đã log dữ liệu cho **{experiment_name}**!")
+                st.markdown(f"🔗 [Truy cập MLflow UI]({st.session_state['mlflow_url']})")
 
-            st.session_state["models"].append({"name": model_name, "model": model})
-            st.write(f"🔹 Mô hình đã được lưu với tên: **{model_name}**")
-            st.write(f"📋 Tổng số mô hình hiện tại: {len(st.session_state['models'])}")
-
-            # Hiển thị danh sách mô hình đã lưu
-            model_names = [m["name"] for m in st.session_state["models"]]
-            st.write("📋 Danh sách mô hình đã lưu:", ", ".join(model_names))
-
-            st.success("📌 Mô hình đã được lưu trên MLflow!")
-            st.markdown(f"🔗 [Truy cập MLflow UI]({st.session_state['mlflow_url']})")
 
 
 def mlflow_input():
@@ -550,153 +692,84 @@ def preprocess_canvas_image(canvas_result):
 
 
 def display_mlflow_experiments():
-    try:
-        st.title("🔍 Quản lý MLflow Experiments")
+    st.title("📊 MLflow Experiment Viewer")
+    
+    # Kết nối với MLflow trên DagsHub
+    mlflow.set_tracking_uri("https://dagshub.com/Snxtruc/HocMayPython.mlflow")
+    
+    # Chỉ lấy thông tin của thí nghiệm "Classifications"
+    experiment_name = "Classifications"
+    experiments = mlflow.search_experiments()
+    selected_experiment = next((exp for exp in experiments if exp.name == experiment_name), None)
 
-        # Kết nối MlflowClient
-        client = MlflowClient()
+    if not selected_experiment:
+        st.error(f"❌ Experiment '{experiment_name}' không tồn tại!")
+        return
 
-        # Lấy danh sách thí nghiệm
-        experiments = mlflow.search_experiments()
+    st.subheader(f"📌 Experiment: {experiment_name}")
+    st.write(f"**Experiment ID:** {selected_experiment.experiment_id}")
+    st.write(f"**Trạng thái:** {'Active' if selected_experiment.lifecycle_stage == 'active' else 'Deleted'}")
+    st.write(f"**Vị trí lưu trữ:** {selected_experiment.artifact_location}")
+
+    # Lấy danh sách runs trong experiment
+    runs = mlflow.search_runs(experiment_ids=[selected_experiment.experiment_id])
+
+    if runs.empty:
+        st.warning("⚠ Không có runs nào trong experiment này.")
+        return
+
+    st.write("### 🏃‍♂️ Các Runs gần đây:")
+    
+    # Lấy danh sách run_name từ params
+    run_info = []
+    for _, run in runs.iterrows():
+        run_id = run["run_id"]
+        run_tags = mlflow.get_run(run_id).data.tags
+        run_name = run_tags.get("mlflow.runName", f"Run {run_id[:8]}")  # Lấy từ tags
+        run_info.append((run_name, run_id))
+    
+    # Tạo dictionary để map run_name -> run_id
+    run_name_to_id = dict(run_info)
+    run_names = list(run_name_to_id.keys())
+    
+    # Chọn run theo run_name
+    selected_run_name = st.selectbox("🔍 Chọn một run:", run_names)
+    selected_run_id = run_name_to_id[selected_run_name]
+
+    # Hiển thị thông tin chi tiết của run được chọn
+    selected_run = mlflow.get_run(selected_run_id)
+
+    if selected_run:
+        st.subheader(f"📌 Thông tin Run: {selected_run_name}")
+        st.write(f"**Run ID:** {selected_run_id}")
+        st.write(f"**Trạng thái:** {selected_run.info.status}")
         
-        if experiments:
-            st.write("### 📌 Danh sách Thí nghiệm")
-            experiment_data = [
-                {"Experiment ID": exp.experiment_id, "Experiment Name": exp.name, "Artifact Location": exp.artifact_location}
-                for exp in experiments
-            ]
-            st.data_editor(pd.DataFrame(experiment_data))
-            
-            # Chọn thí nghiệm
-            selected_exp_id = st.selectbox("🗂 Chọn thí nghiệm", sorted([exp.experiment_id for exp in experiments]))
-            
-            # Đổi tên thí nghiệm
-            new_exp_name = st.text_input("✏️ Nhập tên mới cho thí nghiệm", "")
-            if st.button("💾 Đổi tên") and new_exp_name:
-                client.rename_experiment(selected_exp_id, new_exp_name)
-                st.success("✅ Đổi tên thành công! Vui lòng tải lại trang.")
-            
-            # Xóa thí nghiệm
-            if st.button("🗑️ Xóa thí nghiệm"):
-                client.delete_experiment(selected_exp_id)
-                st.success("✅ Xóa thí nghiệm thành công! Vui lòng tải lại trang.")
-            
-            # Lấy danh sách runs trong thí nghiệm đã chọn
-            runs = client.search_runs(experiment_ids=[selected_exp_id])
-            if runs:
-                st.write("### 📌 Danh sách Run")
-                
-                # Bộ lọc tìm kiếm Run
-                search_term = st.text_input("🔍 Tìm kiếm Run", "")
-                
-                # Bộ lọc theo khoảng thời gian
-                start_date = st.date_input("📅 Chọn ngày bắt đầu", pd.to_datetime("2023-01-01"))
-                end_date = st.date_input("📅 Chọn ngày kết thúc", pd.to_datetime("today"))
-                
-                # Bộ lọc theo trạng thái Run
-                status_filter = st.multiselect("📌 Lọc theo trạng thái", ["RUNNING", "FINISHED", "FAILED", "KILLED"], default=["RUNNING", "FINISHED"])
-                
-                # Hiển thị danh sách Runs
-                run_data = [
-                    {
-                        "Run ID": run.info.run_id,
-                        "Run Name": run.data.tags.get("mlflow.runName", "Unnamed"),
-                        "Start Time": pd.to_datetime(run.info.start_time, unit='ms'),
-                        "End Time": pd.to_datetime(run.info.end_time, unit='ms') if run.info.end_time else None,
-                        "Duration": (pd.to_datetime(run.info.end_time, unit='ms') - pd.to_datetime(run.info.start_time, unit='ms')).total_seconds() if run.info.end_time else None,
-                        "Status": run.info.status,
-                        "Source": run.data.tags.get("mlflow.source.name", "Unknown"),
-                        "Metrics": run.data.metrics
-                    }
-                    for run in runs
-                ]
-                df_runs = pd.DataFrame(run_data).sort_values(by="Start Time", ascending=False)
-                
-                # Áp dụng bộ lọc
-                df_runs = df_runs[(df_runs["Start Time"] >= pd.to_datetime(start_date)) & (df_runs["Start Time"] <= pd.to_datetime(end_date))]
-                df_runs = df_runs[df_runs["Status"].isin(status_filter)]
-                
-                if search_term:
-                    df_runs = df_runs[df_runs["Run Name"].str.contains(search_term, case=False, na=False)]
-                
-                # Bộ lọc theo Metrics cụ thể
-                metric_name = st.text_input("📊 Nhập tên Metric để lọc", "accuracy")
-                metric_value = st.number_input("📈 Giá trị tối thiểu của Metric", min_value=0.0, step=0.01, format="%.2f")
-                
-                def filter_by_metric(run):
-                    return metric_name in run["Metrics"] and run["Metrics"][metric_name] >= metric_value
-                
-                df_runs = df_runs[df_runs.apply(filter_by_metric, axis=1)]
-                
-                st.data_editor(df_runs)
-                
-                run_options = {run["Run ID"]: f"{run['Run Name']} - {run['Run ID']}" for _, run in df_runs.iterrows()}
-                        
-                # Chọn Run trong thí nghiệm để đổi tên hoặc xóa
-                runs = client.search_runs(experiment_ids=[selected_exp_id])
-                if runs:
-                    run_options = {run.info.run_id: f"{run.data.tags.get('mlflow.runName', 'Unnamed')} - {run.info.run_id}" for run in runs}
-                    selected_run_id = st.selectbox("✏️ Chọn Run để đổi tên", list(run_options.keys()), format_func=lambda x: run_options[x])
-                    new_run_name = st.text_input("📛 Nhập tên mới cho Run", "")
-                    if st.button("✅ Cập nhật tên Run") and new_run_name:
-                        client.set_tag(selected_run_id, "mlflow.runName", new_run_name)
-                        st.success("✅ Cập nhật tên Run thành công! Vui lòng tải lại trang.")
-                    
-                    selected_run_id_delete = st.selectbox("🗑️ Chọn Run để xóa", list(run_options.keys()), format_func=lambda x: run_options[x])
-                    if st.button("❌ Xóa Run"):
-                        client.delete_run(selected_run_id_delete)
-                        st.success("✅ Xóa Run thành công! Vui lòng tải lại trang.")
-                    
-
-                # Chọn Run để xem chi tiết
-                selected_run_id = st.selectbox("🔍 Chọn Run để xem chi tiết", list(run_options.keys()), format_func=lambda x: run_options[x])
-                selected_run = client.get_run(selected_run_id)
-                
-                st.write("### 📋 Thông tin Run")
-                st.write(f"**Run ID:** {selected_run_id}")
-                st.write(f"**Run Name:** {selected_run.data.tags.get('mlflow.runName', 'Unnamed')}")
-                st.write(f"**Start Time:** {pd.to_datetime(selected_run.info.start_time, unit='ms')}")
-                st.write(f"**End Time:** {pd.to_datetime(selected_run.info.end_time, unit='ms') if selected_run.info.end_time else 'N/A'}")
-                st.write(f"**Duration:** {(pd.to_datetime(selected_run.info.end_time, unit='ms') - pd.to_datetime(selected_run.info.start_time, unit='ms')).total_seconds() if selected_run.info.end_time else 'N/A'} seconds")
-                st.write(f"**Status:** {selected_run.info.status}")
-                st.write(f"**Source:** {selected_run.data.tags.get('mlflow.source.name', 'Unknown')}")
-                
-                # Hiển thị Metrics
-                st.write("### 📊 Metrics")
-                metrics = selected_run.data.metrics
-                if metrics:
-                    df_metrics = pd.DataFrame(metrics.items(), columns=["Metric Name", "Value"])
-                    st.data_editor(df_metrics)
-                else:
-                    st.write("📭 Không có Metrics nào.")
-                
-                # Hiển thị Artifacts
-                artifact_uri = selected_run.info.artifact_uri
-                st.write(f"**Artifact Location:** {artifact_uri}")
-                
-                st.write("### 📂 Danh sách Artifacts")
-                artifacts = client.list_artifacts(selected_run_id)
-                if artifacts:
-                    artifact_paths = [artifact.path for artifact in artifacts]
-                    st.write(artifact_paths)
-                    for artifact in artifacts:
-                        if artifact.path.endswith(".png") or artifact.path.endswith(".jpg"):
-                            st.image(f"{artifact_uri}/{artifact.path}", caption=artifact.path)
-                        if artifact.path.endswith(".csv") or artifact.path.endswith(".txt"):
-                            with open(f"{artifact_uri}/{artifact.path}", "r") as f:
-                                st.download_button(label=f"📥 Tải {artifact.path}", data=f.read(), file_name=artifact.path)
-                else:
-                    st.write("📭 Không có artifacts nào.")
-                
-                # Truy cập MLflow UI
-                st.write("### 🔗 Truy cập MLflow UI")
-                st.markdown("[Mở MLflow UI](https://dagshub.com/Snxtruc/HocMayVoiPython.mlflow)")
-            else:
-                st.warning("⚠️ Không có Run nào trong thí nghiệm này.")
+        start_time_ms = selected_run.info.start_time  # Thời gian lưu dưới dạng milliseconds
+        if start_time_ms:
+            start_time = datetime.fromtimestamp(start_time_ms / 1000).strftime("%Y-%m-%d %H:%M:%S")
         else:
-            st.warning("⚠️ Không có Thí nghiệm nào được tìm thấy.")
-    except Exception as e:
-        st.error(f"❌ Lỗi khi lấy danh sách thí nghiệm: {e}")
+            start_time = "Không có thông tin"
+        
+        st.write(f"**Thời gian chạy:** {start_time}")
+
+        # Hiển thị thông số đã log
+        params = selected_run.data.params
+        metrics = selected_run.data.metrics
+
+        if params:
+            st.write("### ⚙️ Parameters:")
+            st.json(params)
+
+        if metrics:
+            st.write("### 📊 Metrics:")
+            st.json(metrics)
+
+        # Hiển thị model artifact
+        model_artifact_path = f"{selected_experiment.artifact_location}/{selected_run_id}/artifacts/model"
+        st.write("### 📂 Model Artifact:")
+        st.write(f"📥 [Tải mô hình]({model_artifact_path})")
+    else:
+        st.warning("⚠ Không tìm thấy thông tin cho run này.")
 
 def du_doan():
     st.header("✍️ Dự đoán số")
