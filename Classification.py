@@ -945,7 +945,7 @@ def Classification():
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "📖 Lý thuyết Decision Tree", 
         "📖 Lý thuyết SVM", 
-        "🚀", 
+        "🚀 Data", 
         "📥 Tải dữ liệu", 
         "⚙️ Huấn luyện", 
         "Tracking mlflow",
