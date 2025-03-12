@@ -6,7 +6,10 @@ from PIL import Image
 import openml
 import os
 import mlflow
+import time
 import shutil
+import humanize
+from datetime import datetime
 from scipy.stats import mode
 from scipy import stats
 from mlflow.tracking import MlflowClient
@@ -24,155 +27,216 @@ from sklearn.model_selection import train_test_split
 import streamlit as st
 
 def ly_thuyet_kmeans():
-    st.title("📊 Lý thuyết về K-means")
+    st.header("📖 Lý thuyết về K-Means")
+    st.markdown(" ### 1️⃣ K-Means là gì?")
+    st.write("K-means là một thuật toán **học không giám sát** dùng để phân cụm dữ liệu thành k cụm dựa trên khoảng cách Euclid.")
+    st.markdown(" ##### 🎯 Mục tiêu của thuật toán K-Means")
 
-    # Chèn đường link ảnh trước phần Mục tiêu của K-means
-    st.markdown("""
-    
-
-    **K-means** là thuật toán phân cụm phổ biến trong học máy không giám sát (unsupervised learning). Thuật toán này nhóm các điểm dữ liệu thành các cụm sao cho các điểm trong cùng một cụm có sự tương đồng cao, và các cụm có sự khác biệt lớn. Một trong những điểm nổi bật của K-means là người dùng không cần phải biết trước số lượng cụm cần phân chia.
-    ![K-means Algorithm](https://machinelearningcoban.com/assets/kmeans/figure_2.png)           
-                
-    ### 1. Mục tiêu của K-means
-    K-means nhằm phân chia tập dữ liệu thành **K cụm**, sao cho:
-    - Các điểm trong cùng một cụm có độ tương đồng cao (dựa trên khoảng cách giữa các điểm).
-    - Khoảng cách giữa các cụm là lớn nhất, nghĩa là các cụm phải phân tách rõ ràng.
-
-    ### 2. Nguyên lý hoạt động
-    Quy trình của K-means bao gồm các bước chính sau:
-    1. **Khởi tạo số cụm (K)**: Người dùng phải chỉ định trước số lượng cụm K.
-    2. **Khởi tạo các tâm cụm (centroids)**: Sau khi chọn K, thuật toán khởi tạo K centroid (tâm cụm) bằng cách chọn ngẫu nhiên hoặc sử dụng phương pháp K-means++ để cải thiện việc khởi tạo.
-    3. **Gán điểm dữ liệu vào các cụm**: Mỗi điểm dữ liệu được gán vào cụm có centroid gần nhất, thường sử dụng khoảng cách Euclidean.
-    4. **Cập nhật centroid**: Sau khi các điểm được gán vào cụm, centroid của mỗi cụm được tính lại là trung bình của các điểm trong cụm.
-    5. **Lặp lại**: Quá trình gán điểm vào cụm và cập nhật centroid tiếp tục cho đến khi các centroid không thay đổi.
-
-    ### 3. Thuật toán K-means
-    1. Chọn K và khởi tạo các centroid.
-    2. Gán mỗi điểm dữ liệu vào cụm có centroid gần nhất.
-    3. Tính toán lại centroid của các cụm.
-    4. Lặp lại các bước trên cho đến khi không có sự thay đổi.
-
-    ### 4. Đánh giá chất lượng phân cụm
-    Một trong những cách đánh giá phổ biến là sử dụng **Inertia** (hoặc SSE - Sum of Squared Errors), tính bằng tổng bình phương khoảng cách giữa các điểm và centroid tương ứng. Inertia càng nhỏ, các cụm càng chặt chẽ.
-
-    ### 5. Các cải tiến của K-means
-    - **K-means++**: Phương pháp này cải thiện việc khởi tạo centroid để giảm thiểu rủi ro dính vào tối ưu địa phương.
-    - **Elbow Method**: Phương pháp này giúp xác định K tối ưu bằng cách vẽ đồ thị Inertia theo K và tìm điểm "elbow", nơi độ giảm của Inertia bắt đầu chậm lại.
-
-    ### 6. Ứng dụng của K-means
-    K-means có thể ứng dụng trong nhiều lĩnh vực:
-    - Phân loại khách hàng trong marketing (segmentation).
-    - Phân tích hình ảnh và nhận dạng mẫu.
-    - Phân cụm tài liệu trong xử lý ngôn ngữ tự nhiên (NLP).
-    - Phân tích dữ liệu gene trong sinh học.
-
-    ### 7. Ví dụ về K-means trong Python
-    Dưới đây là ví dụ sử dụng K-means với thư viện scikit-learn:
-
-    ```python
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from sklearn.cluster import KMeans
-    from sklearn.datasets import make_blobs
-
-    # Tạo dữ liệu giả
-    X, _ = make_blobs(n_samples=1000, centers=4, random_state=42)
-
-    # Khởi tạo và huấn luyện mô hình K-means với K=4
-    kmeans = KMeans(n_clusters=4, random_state=42)
-    kmeans.fit(X)
-
-    # Dự đoán nhãn các điểm dữ liệu
-    y_kmeans = kmeans.predict(X)
-
-    # Vẽ đồ thị phân cụm
-    plt.scatter(X[:, 0], X[:, 1], c=y_kmeans, s=50, cmap='viridis')
-
-    # Vẽ các centroid
-    centers = kmeans.cluster_centers_
-    plt.scatter(centers[:, 0], centers[:, 1], c='red', s=200, marker='X')
-    plt.title("K-means Clustering")
-    plt.show()
-    ```
-
-    **Mô tả**:
-    - Tạo dữ liệu giả với 4 cụm.
-    - Áp dụng thuật toán K-means với K=4.
-    - Vẽ đồ thị phân cụm với các centroid màu đỏ.
+    st.write("""
+    Thuật toán **K-Means** có mục tiêu chính là **tìm các cụm tối ưu** trong tập dữ liệu bằng cách **tối thiểu hóa tổng bình phương khoảng cách** từ các điểm dữ liệu đến tâm cụm của chúng.
     """)
 
+    st.markdown(" ##### Hàm mục tiêu (Objective Function)")
+    st.write("K-Means cố gắng tối thiểu hóa tổng phương sai trong cụm, được biểu diễn bằng công thức:")
 
+    st.latex(r"""
+    J = \sum_{k=1}^{K} \sum_{x_i \in C_k} || x_i - \mu_k ||^2
+    """)
+
+    st.write("""
+    Trong đó:
+    - \\( K \\): Số lượng cụm.
+    - \\( C_k \\): Tập hợp các điểm dữ liệu thuộc cụm thứ \\( k \\).
+    - \\( x_i \\): Điểm dữ liệu trong cụm \\( C_k \\).
+    - \\( \mu_k \\): Tâm cụm của \\( C_k \\).
+    - \\( || x_i - \mu_k ||^2 \\): Khoảng cách Euclidean bình phương giữa điểm \\( x_i \\) và tâm cụm \\( \mu_k \\).
+    """)
+
+    st.markdown(" ### 2️⃣ ý tưởng") 
+    st.markdown(
+    """
+    - Chia tập dữ liệu thành 𝐾K cụm (clusters), với mỗi cụm có một tâm cụm (centroid).
+    - Dữ liệu được gán vào cụm có tâm cụm gần nó nhất.
+    - Cập nhật tâm cụm bằng cách tính trung bình các điểm thuộc cụm.
+    - Lặp lại cho đến khi không có sự thay đổi đáng kể trong cụm.
+    """    
+    )
+    image_url = "https://miro.medium.com/v2/resize:fit:720/format:webp/1*fz-rjYPPRlGEMdTI-RLbDg.png" 
+    article_url = "https://meghachhabria10.medium.com/k-means-clustering-algorithm-its-use-cases-13dfc0020b23"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="500">
+            </a>
+            <p style="font-size: 14px; color: gray;"></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    ) 
+    st.markdown(" ### 3️⃣ Thuật toán K-Means") 
+    st.markdown(
+    """
+    - 1.Chọn số cụm 𝐾 (được xác định trước).
+    - 2.Khởi tạo 𝐾 tâm cụm (chọn ngẫu nhiên hoặc theo K-Means++ để tốt hơn).
+    - 3.Gán dữ liệu vào cụm: Mỗi điểm dữ liệu được gán vào cụm có tâm cụm gần nhất
+    """
+    )
+    st.latex(r"""d(p, q) = \sqrt{\sum_{i=1}^{n} (p_i - q_i)^2}""")
+    st.markdown(
+    """
+    - 4.Cập nhật tâm cụm: Tính lại tâm cụm bằng cách lấy trung bình các điểm trong mỗi cụm.
+    """
+    )
+    st.latex(r"""\mu_k = \frac{1}{N_k} \sum_{i=1}^{N_k} x_i""")
+    st.markdown(
+    """
+    - 5.Lặp lại các bước 3 & 4 cho đến khi các tâm cụm không thay đổi nhiều nữa hoặc đạt đến số lần lặp tối đa.
+    """
+    )
+    image_url = "https://machinelearningcoban.com/assets/kmeans/kmeans11.gif"
+    article_url = "https://machinelearningcoban.com/2017/01/01/kmeans/"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="500">
+            </a>
+            <p style="font-size: 14px; color: gray;">Minh họa thuật toán K-Means</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    ) 
+    st.markdown(" ###  4️⃣ Đánh giá thuật toán K-Means")
+    st.markdown(" ##### 📌 Elbow Method")
+    st.write("""
+    - Tính tổng khoảng cách nội cụm WCSS (Within-Cluster Sum of Squares) cho các giá trị k khác nhau.
+    - Điểm "khuỷu tay" (elbow point) là giá trị k tối ưu, tại đó việc tăng thêm cụm không làm giảm đáng kể WCSS.
+    """)
+    st.latex(r"""
+    WCSS = \sum_{i=1}^{k} \sum_{x \in C_i} \|x - \mu_i\|^2
+    """)
+    image_url = "https://miro.medium.com/v2/resize:fit:720/format:webp/0*aY163H0kOrBO46S-.png"
+    article_url = "https://medium.com/@zalarushirajsinh07/the-elbow-method-finding-the-optimal-number-of-clusters-d297f5aeb189"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="500">
+            </a>
+            <p style="font-size: 14px; color: gray;"></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    ) 
+
+    st.markdown(" ##### 📌 Silhouette Score")
+    st.write("""
+    - So sánh mức độ gần gũi giữa các điểm trong cụm với các điểm ở cụm khác.
+    """)
+    st.latex(r"""
+    s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))}
+    """)
+    st.write("""
+    - \\( a(i) \\): Khoảng cách trung bình từ điểm i đến các điểm trong cùng cụm.
+    - \\( b(i) \\): Khoảng cách trung bình từ điểm i đến các điểm trong cụm gần nhất.
+    """)
+    image_url = "https://miro.medium.com/v2/resize:fit:720/format:webp/1*pw0s5xkiyVxD4f2XqrPmuQ.png"
+    article_url = "https://medium.com/@ayse_nur_safak/the-silhouette-score-finding-the-optimal-number-of-clusters-using-k-means-clustering-9af3be119848"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="400">
+            </a>
+            <p style="font-size: 14px; color: gray;"></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    ) 
+    st.markdown(" ##### 📌 Gap Statistic")
+    st.write("""
+    - So sánh hiệu quả phân cụm trên dữ liệu thực với dữ liệu ngẫu nhiên (không có cấu trúc).
+    """)
+    st.latex(r"""
+    Gap(k) = \mathbb{E}[\log(W_k^{random})] - \log(W_k^{data})
+    """)
+    st.write("""
+    - \\( W_k^{random} \\): WCSS trên random data.
+    - \\( W_k^{data} \\): WCSS trên actual data.
+    """)
+    image_url = "https://media.geeksforgeeks.org/wp-content/uploads/20241227193645905364/Gap-Statistics-vs-Number-of-Clusters-.png"
+    article_url = "https://www.geeksforgeeks.org/gap-statistics-for-optimal-number-of-cluster/"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="400">
+            </a>
+            <p style="font-size: 14px; color: gray;"></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    ) 
 
 def ly_thuyet_dbscans():
-    # Tiêu đề ứng dụng
-    st.title("Thuật Toán DBSCAN - Density-Based Spatial Clustering with Noise")
+   st.header("📖 Lý thuyết về DBSCAN")
+   st.markdown(" ### 1️⃣ DBSCAN là gì?")
+   st.markdown(
+   """
+   - DBSCAN là một thuật toán phân cụm dựa trên mật độ, được thiết kế để tìm các cụm dữ liệu có hình dạng bất kỳ và phát hiện các điểm nhiễu (noise).
+   - Không yêu cầu biết trước số cụm.
+   """
+   )
+   st.markdown(" ##### 🎯 Mục tiêu của thuật toán DBSCAN ")
+   st.write("1. **Phát hiện cụm có hình dạng bất kỳ:** Không giống như K-Means (yêu cầu cụm có dạng hình cầu), DBSCAN có thể tìm ra các cụm có hình dạng bất kỳ, kể cả dạng phi tuyến tính.")
+   st.write("2. **Không cần chỉ định số cụm trước:** Không giống K-Means, DBSCAN tự động tìm ra số lượng cụm dựa trên mật độ điểm dữ liệu mà không cần tham số 𝑘")
+   st.write("3. **Xác định điểm nhiễu (outliers):** Các điểm không thuộc cụm nào được xác định là nhiễu, giúp làm sạch dữ liệu.")
+   st.markdown(" ##### 🎯 Giải thích thuật toán DBSCAN: Epsilon, MinPts và Phân loại điểm ")
+   st.write(" 1. Epsilon (ε)  Bán kính để xác định khu vực lân cận của một điểm.")
+   st.write(" 2. MinPts Số lượng điểm tối thiểu cần thiết để một khu vực được coi là đủ mật độ.")
+   st.markdown("###### 3. Loại điểm trong DBSCAN:")
+   st.write("- **Core Point**: Điểm có ít nhất MinPts điểm khác nằm trong khoảng \\( \epsilon \\).")
+   st.write("- **Border Point**: Điểm không phải là Core Point nhưng nằm trong vùng lân cận của một Core Point.")
+   st.write("- **Noise**: Điểm không thuộc Core Point hoặc Border Point.")
+   image_url = "https://media.datacamp.com/cms/google/ad_4nxczbbrn-drkfpsiiqf1zayyt5xnqiwgpz0qocpnt6au5mintqlk4r1mxlognyzyxxmewlx35vcn53cbwm6iun4hh5i-aokth6fyqhovv1dlill6myhah4hzizcpb-bmv-g8vbiwawgudq8_gkuhqb8yiwja.jpeg"
+   article_url = "https://www.datacamp.com/tutorial/dbscan-clustering-algorithm"
+   st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;"></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )   
+   st.markdown(" ### 3️⃣ Thuật toán DBSCAN")
+   st.write("1. Chọn một điểm chưa được thăm")
+   st.write("2. Kiểm tra xem có ít nhất MinPts điểm trong vùng \( \\varepsilon \) của nó hay không:")
+   st.write("- ✅ **Nếu có**: Điểm đó là **Core Point**, và một cụm mới bắt đầu.")
+   st.write("- ❌ **Nếu không**: Điểm đó là **Noise** (nhiễu), nhưng sau này có thể trở thành **Border Point** nếu thuộc vùng lân cận của một **Core Point**.")
+   st.write("3. Nếu điểm là Core Point, mở rộng cụm bằng cách tìm tất cả các điểm lân cận thỏa mãn điều kiện.")
+   st.write("4. Lặp lại cho đến khi không còn điểm nào có thể được thêm vào cụm.")
+   st.write("5. Chuyển sang điểm chưa được thăm tiếp theo và lặp lại quá trình.")
+   image_url = "https://media.geeksforgeeks.org/wp-content/uploads/20190418023034/781ff66c-b380-4a78-af25-80507ed6ff26.jpeg"
+   article_url = "https://www.geeksforgeeks.org/dbscan-clustering-in-ml-density-based-clustering/"
+   st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;"></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )   
 
-    # Mô tả lý thuyết
-    st.header("1. Mục tiêu của DBSCAN")
-    st.write("""
-        DBSCAN (Density-Based Spatial Clustering of Applications with Noise) là một thuật toán phân cụm không giám sát, 
-        được sử dụng để phân chia dữ liệu thành các cụm dựa trên mật độ điểm dữ liệu và phát hiện các điểm ngoại lai.
-        Thuật toán này không yêu cầu bạn phải chỉ định số cụm K trước khi chạy và có khả năng phát hiện các điểm ngoại lai.
-    """)
-    st.image("https://miro.medium.com/v2/resize:fit:875/0*PAjsvIpK5dmNXfM0.png", caption = "Phan cum dbscan", use_column_width=True)
+   
 
-    st.header("2. Cách thức hoạt động của DBSCAN")
-    st.write("""
-        Thuật toán DBSCAN hoạt động theo ba bước cơ bản:
-        - **Điểm lõi (Core point)**: Một điểm được coi là điểm lõi nếu có ít nhất MinPts điểm trong bán kính Epsilon.
-        - **Điểm biên (Border point)**: Là điểm không phải điểm lõi nhưng nằm trong bán kính Epsilon của một điểm lõi.
-        - **Điểm ngoại lai (Noise point)**: Là điểm không phải điểm lõi và không nằm trong bán kính Epsilon của bất kỳ điểm lõi nào.
-        
-        DBSCAN hoạt động qua các bước sau:
-        1. Khởi tạo: Chọn một điểm chưa được phân cụm.
-        2. Xây dựng cụm: Nếu điểm này là điểm lõi, mở rộng cụm từ điểm lõi đó, bao gồm các điểm biên và các điểm lõi.
-        3. Điểm ngoại lai: Các điểm không thuộc bất kỳ cụm nào sẽ là điểm ngoại lai.
-    """)
 
-    # Thực hiện phân cụm DBSCAN
-    st.header("3. Phân cụm với DBSCAN")
-    st.write("""
-        Dưới đây là ví dụ về phân cụm dữ liệu bằng thuật toán DBSCAN.
-        Thuật toán sẽ phân chia dữ liệu thành các cụm dựa trên mật độ và phát hiện các điểm ngoại lai.
-    """)
-
-    # Tạo dữ liệu giả
-    X, _ = make_blobs(n_samples=1000, centers=4, random_state=42)
-
-    # Khởi tạo và huấn luyện mô hình DBSCAN
-    dbscan = DBSCAN(eps=0.3, min_samples=10)
-    y_dbscan = dbscan.fit_predict(X)
-
-    # Vẽ đồ thị phân cụm
-    fig, ax = plt.subplots()
-    scatter = ax.scatter(X[:, 0], X[:, 1], c=y_dbscan, cmap='viridis')
-    centroids = dbscan.components_
-
-    # Thêm tiêu đề và hiển thị đồ thị
-    plt.title("Phân Cụm DBSCAN")
-    plt.xlabel("Feature 1")
-    plt.ylabel("Feature 2")
-    st.pyplot(fig)
-
-    # Hiển thị giải thích về các điểm ngoại lai
-    st.header("4. Điểm Ngoại Lai")
-    st.write("""
-        Các điểm ngoại lai (noise points) sẽ được gán nhãn là -1 và không thuộc vào bất kỳ cụm nào. 
-        Trong đồ thị trên, các điểm ngoại lai sẽ có màu sắc khác biệt.
-    """)
-
-    st.header("5. Ưu điểm và Nhược điểm của DBSCAN")
-    st.write("""
-        **Ưu điểm**:
-        - Không cần biết trước số cụm.
-        - Phát hiện điểm ngoại lai rất hiệu quả.
-        - Phân cụm các dạng hình phức tạp.
-        
-        **Nhược điểm**:
-        - Cần chọn tham số **Epsilon** và **MinPts** phù hợp.
-        - Khó xử lý với dữ liệu có mật độ không đồng đều.
-        - Không hiệu quả với dữ liệu quá lớn.
-    """)
 
 def data(): 
     st.title("📚 Tập Dữ Liệu MNIST")
@@ -209,116 +273,95 @@ def data():
     - **Học sâu và phân loại hình ảnh**: Các mô hình học sâu, đặc biệt là mạng nơ-ron tích chập, được huấn luyện với bộ dữ liệu này để phân loại chữ số.
     """)
 
-def up_load_db():
-    # Tiêu đề
-    st.header("📥 Tải Dữ Liệu")
 
-    # Kiểm tra xem dữ liệu đã tải chưa
+def up_load_db():
+    st.header("📥 Tải Dữ Liệu")
+    
     if "data" in st.session_state and st.session_state.data is not None:
         st.warning("🔸 **Dữ liệu đã được tải lên rồi!** Bạn có thể tiếp tục với các bước tiền xử lý và chia dữ liệu.")
     else:
-        # Chọn nguồn dữ liệu
         option = st.radio("Chọn nguồn dữ liệu:", ["Tải từ OpenML", "Upload dữ liệu"], key="data_source_radio")
-
-        # Biến để lưu trữ dữ liệu
+        
         if "data" not in st.session_state:
             st.session_state.data = None
-
-        # Nếu chọn tải từ OpenML
+        
         if option == "Tải từ OpenML":
             st.markdown("#### 📂 Tải dữ liệu MNIST từ OpenML")
             if st.button("Tải dữ liệu MNIST", key="download_mnist_button"):
-                st.write("🔄 Đang tải dữ liệu MNIST từ OpenML...")
-                
-                # Tải dữ liệu MNIST từ file .npy
-                X = np.load("X.npy")
-                y = np.load("y.npy")
-                
-                # Hiển thị 5 dòng dữ liệu đầu tiên, chuyển đổi mỗi ảnh thành vector 1 chiều
-                st.write("📊 **Dữ liệu mẫu:**")
-                X_reshaped = X[:5].reshape(5, -1)  # Chuyển đổi 5 ảnh đầu tiên thành các vector 1 chiều
-                st.write(pd.DataFrame(X_reshaped))  # Hiển thị dưới dạng DataFrame
-
-                st.success("✅ Dữ liệu MNIST đã được tải thành công!")
-                st.session_state.data = (X, y)  # Lưu dữ liệu vào session_state
-
-        # Nếu chọn upload dữ liệu từ máy
+                with st.status("🔄 Đang tải dữ liệu MNIST từ OpenML...", expanded=True) as status:
+                    progress_bar = st.progress(0)
+                    for percent_complete in range(0, 101, 20):
+                        time.sleep(0.5)
+                        progress_bar.progress(percent_complete)
+                        status.update(label=f"🔄 Đang tải... ({percent_complete}%)")
+                    
+                    X = np.load("X.npy")
+                    y = np.load("y.npy")
+                    
+                    status.update(label="✅ Tải dữ liệu thành công!", state="complete")
+                    
+                    st.session_state.data = (X, y)
+        
         else:
             st.markdown("#### 📤 Upload dữ liệu của bạn")
-
             uploaded_file = st.file_uploader("Chọn một file ảnh", type=["png", "jpg", "jpeg"], key="file_upload")
-
+            
             if uploaded_file is not None:
-                # Mở file hình ảnh
-                image = Image.open(uploaded_file)
-
-                # Hiển thị ảnh
-                st.image(image, caption="Ảnh đã tải lên", use_column_width=True)
-
-                # Kiểm tra kích thước ảnh
-                if image.size != (28, 28):
-                    st.error("❌ Ảnh không đúng kích thước 28x28 pixel. Vui lòng tải lại ảnh đúng định dạng.")
-                else:
-                    st.success("✅ Ảnh hợp lệ!")
-                    # Chuyển đổi hình ảnh thành dạng mảng cho mô hình
-                    image = image.convert('L')  # Chuyển thành ảnh grayscale
-                    image_array = np.array(image).reshape(1, -1)  # Reshape để tương thích với mô hình
-                    st.session_state.data = image_array  # Lưu ảnh vào session_state
-
-    # Kiểm tra nếu dữ liệu đã được tải
+                with st.status("🔄 Đang xử lý ảnh...", expanded=True) as status:
+                    progress_bar = st.progress(0)
+                    for percent_complete in range(0, 101, 25):
+                        time.sleep(0.3)
+                        progress_bar.progress(percent_complete)
+                        status.update(label=f"🔄 Đang xử lý... ({percent_complete}%)")
+                    
+                    image = Image.open(uploaded_file)
+                    st.image(image, caption="Ảnh đã tải lên", use_column_width=True)
+                    
+                    if image.size != (28, 28):
+                        status.update(label="❌ Ảnh không đúng kích thước 28x28 pixel.", state="error")
+                    else:
+                        status.update(label="✅ Ảnh hợp lệ!", state="complete")
+                        image = image.convert('L')
+                        image_array = np.array(image).reshape(1, -1)
+                        st.session_state.data = image_array
+    
     if st.session_state.data is not None:
         st.markdown("#### ✅ Dữ liệu đã sẵn sàng!")
         
-        # Nếu là dữ liệu MNIST từ OpenML
         if isinstance(st.session_state.data, tuple):
             X, y = st.session_state.data
-            # Tiền xử lý dữ liệu MNIST
             st.markdown("##### 🔄 Tiến hành tiền xử lý dữ liệu MNIST")
-
-            # Chọn loại tiền xử lý
             preprocess_option = st.selectbox("Chọn phương pháp tiền xử lý dữ liệu:", 
-                                            ["Chuẩn hóa dữ liệu (Standardization)", "Giảm chiều (PCA)", "Không tiền xử lý"], key="preprocess_mnist")
-
+                                            ["Chuẩn hóa dữ liệu (Standardization)", "Giảm chiều (PCA)", "Không tiền xử lý"], 
+                                            key="preprocess_mnist")
             if preprocess_option == "Chuẩn hóa dữ liệu (Standardization)":
-                # Chuyển đổi X thành mảng 2D
-                X_reshaped = X.reshape(X.shape[0], -1)  # Reshape thành (n_samples, n_features)
-                # Chuẩn hóa dữ liệu
+                X_reshaped = X.reshape(X.shape[0], -1)
                 scaler = StandardScaler()
                 X_scaled = scaler.fit_transform(X_reshaped)
                 st.write("📊 **Dữ liệu sau khi chuẩn hóa**:")
                 st.write(pd.DataFrame(X_scaled).head())
-
             elif preprocess_option == "Giảm chiều (PCA)":
-                # Giảm chiều dữ liệu với PCA
-                pca = PCA(n_components=50)  # Giảm xuống 50 chiều
-                X_pca = pca.fit_transform(X.reshape(X.shape[0], -1))  # Reshape trước khi PCA
+                pca = PCA(n_components=50)
+                X_pca = pca.fit_transform(X.reshape(X.shape[0], -1))
                 st.write("📊 **Dữ liệu sau khi giảm chiều (PCA)**:")
                 st.write(pd.DataFrame(X_pca).head())
-
             else:
                 st.write("📊 **Dữ liệu không có tiền xử lý**.")
-
-        # Nếu là ảnh tải lên từ máy
-        elif isinstance(st.session_state.data, np.ndarray):  # Nếu là ảnh người dùng tải lên
+        
+        elif isinstance(st.session_state.data, np.ndarray):
             st.markdown("#### 👁️ Tiến hành tiền xử lý ảnh")
-
-            # Chọn loại tiền xử lý cho ảnh
             preprocess_option_image = st.selectbox("Chọn phương pháp tiền xử lý ảnh:",
-                                                   ["Chuẩn hóa ảnh", "Không tiền xử lý"], key="preprocess_image")
-
+                                                   ["Chuẩn hóa ảnh", "Không tiền xử lý"], 
+                                                   key="preprocess_image")
             if preprocess_option_image == "Chuẩn hóa ảnh":
-                # Chuẩn hóa ảnh
-                image_scaled = st.session_state.data / 255.0  # Chuyển đổi giá trị pixel về phạm vi [0, 1]
+                image_scaled = st.session_state.data / 255.0
                 st.write("📊 **Ảnh sau khi chuẩn hóa**:")
                 st.image(image_scaled.reshape(28, 28), caption="Ảnh sau khi chuẩn hóa", use_column_width=True)
-
             else:
                 st.write("📊 **Ảnh không có tiền xử lý**.")
-
     else:
         st.warning("🔸 Vui lòng tải dữ liệu trước khi tiếp tục làm việc.")
-
-    # Hiển thị lưu ý
+    
     st.markdown("""
     🔹 **Lưu ý:**
     - Ứng dụng chỉ sử dụng dữ liệu ảnh dạng **28x28 pixel (grayscale)**.
@@ -330,69 +373,48 @@ def up_load_db():
 def chia_du_lieu():
     st.title("📌 Chia dữ liệu Train/Test")
 
-    # Đọc dữ liệu từ file
-    X = np.load("X.npy")
-    y = np.load("y.npy")
+    # Đọc dữ liệu
+    Xmt = np.load("X.npy")
+    ymt = np.load("y.npy")
+    X = Xmt.reshape(Xmt.shape[0], -1)  # Giữ nguyên định dạng dữ liệu
+    y = ymt.reshape(-1)  
+
     total_samples = X.shape[0]
 
-    # Nếu dữ liệu đã được chia trước đó, hiển thị thông tin và không chia lại
-    if "X_train" in st.session_state:
-        st.success("✅ **Dữ liệu đã được chia, không cần chạy lại!**")
+    # Thanh kéo chọn số lượng ảnh để train
+    num_samples = st.slider("Chọn số lượng ảnh để train:", min_value=1000, max_value=total_samples, value=10000)
 
-        # Hiển thị bảng dữ liệu đã chia
-        summary_df = pd.DataFrame({
-            "Tập dữ liệu": ["Train", "Validation", "Test"],
-            "Số lượng mẫu": [
-                len(st.session_state["X_train"]),
-                len(st.session_state["X_val"]),
-                len(st.session_state["X_test"])
-            ]
-        })
-        st.table(summary_df)
-        return
-
-    # Thanh chọn số lượng ảnh để train
-    num_samples = st.slider("📌 Chọn số lượng ảnh để train:", 1000, total_samples, 10000)
-
-    # Thanh chọn % dữ liệu Test
-    test_size = st.slider("📌 Chọn % dữ liệu Test", 10, 50, 20)
-    remaining_size = 100 - test_size  # Tính phần còn lại của tập Train
-
-    # Thanh chọn % dữ liệu Validation (trong tập Train)
-    val_size = st.slider("📌 Chọn % dữ liệu Validation (trong phần Train)", 0, 50, 15)
-
-    st.markdown(f"### 📌 **Tỷ lệ phân chia:** Test={test_size}%, Validation={val_size}%, Train={remaining_size - val_size}%")
+    # Thanh kéo chọn tỷ lệ Train/Test
+    test_size = st.slider("Chọn tỷ lệ test:", min_value=0.1, max_value=0.5, value=0.2)
 
     if st.button("✅ Xác nhận & Lưu"):
-        # Chọn tập dữ liệu theo số lượng mẫu mong muốn
-        X_selected, _, y_selected, _ = train_test_split(X, y, train_size=num_samples, stratify=y, random_state=42)
+        progress_bar = st.progress(0)
+        status_text = st.empty()
 
-        # Chia train/test
-        X_train_full, X_test, y_train_full, y_test = train_test_split(X_selected, y_selected, 
-                                                                      test_size=test_size / 100, 
-                                                                      stratify=y_selected, random_state=42)
+        # Cập nhật tiến trình
+        progress_stages = [(10, "🔄 Đang chọn số lượng ảnh..."),
+                           (50, "🔄 Đang chia dữ liệu Train/Test..."),
+                           (80, "🔄 Đang lưu dữ liệu vào session..."),
+                           (100, "✅ Hoàn tất!")]
 
-        # Chia train/val
-        X_train, X_val, y_train, y_val = train_test_split(X_train_full, y_train_full, 
-                                                          test_size=val_size / (100 - test_size), 
-                                                          stratify=y_train_full, random_state=42)
+        for progress, message in progress_stages:
+            progress_bar.progress(progress)
+            status_text.text(f"{message} ({progress}%)")
+            time.sleep(0.5)  # Tạo độ trễ để hiển thị tiến trình rõ ràng hơn
 
-        # Lưu dữ liệu vào session_state để sử dụng sau này
+        X_selected, y_selected = X[:num_samples], y[:num_samples]
+        X_train, X_test, y_train, y_test = train_test_split(X_selected, y_selected, test_size=test_size, random_state=42)
+
+        # Lưu vào session_state để sử dụng sau
         st.session_state["X_train"] = X_train
-        st.session_state["X_val"] = X_val
-        st.session_state["X_test"] = X_test
         st.session_state["y_train"] = y_train
-        st.session_state["y_val"] = y_val
+        st.session_state["X_test"] = X_test
         st.session_state["y_test"] = y_test
 
-        # Tạo bảng hiển thị số lượng mẫu của từng tập dữ liệu
-        summary_df = pd.DataFrame({
-            "Tập dữ liệu": ["Train", "Validation", "Test"],
-            "Số lượng mẫu": [X_train.shape[0], X_val.shape[0], X_test.shape[0]]
-        })
+        st.success(f"🔹 Dữ liệu đã được chia: Train ({len(X_train)}), Test ({len(X_test)})")
 
-        st.success("✅ **Dữ liệu đã được chia thành công!**")
-        st.table(summary_df)
+    if "X_train" in st.session_state:
+        st.write("📌 Dữ liệu train/test đã sẵn sàng để sử dụng!")
 
 ###Thiet lap dagshub
 def mlflow_input():
@@ -422,9 +444,11 @@ def train():
 
     X_train = st.session_state["X_train"]
     y_train = st.session_state["y_train"]
-    X_train_norm = (X_train / 255.0).reshape(X_train.shape[0], -1)  # Chuẩn hóa và làm phẳng
+    X_train_norm = (X_train / 255.0).reshape(X_train.shape[0], -1)
 
     model_choice = st.selectbox("Chọn mô hình:", ["K-Means", "DBSCAN"])
+    
+    run_name = st.text_input("🔹 Nhập tên Run:", "Default_Run").strip()
 
     if model_choice == "K-Means":
         st.markdown("🔹 **K-Means**")
@@ -443,9 +467,23 @@ def train():
 
     mlflow_input()
     if st.button("🚀 Huấn luyện mô hình"):
-        with mlflow.start_run():
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        with mlflow.start_run(run_name=run_name):
+            total_delay = 10  # Tổng thời gian delay thêm
+            steps = 10  # Chia thành 10 bước
+            step_delay = total_delay / steps
+
+            for percent_complete in range(0, 101, 10):  
+                time.sleep(step_delay)  
+                progress_bar.progress(percent_complete)
+                status_text.text(f"🔄 Huấn luyện: {percent_complete}%")
+
             model.fit(X_train_pca)
-            st.success("✅ Huấn luyện thành công!")
+            progress_bar.progress(100)
+            status_text.text("✅ Huấn luyện hoàn tất!")
+            st.success(f"✅ Huấn luyện thành công! (Run: `{run_name}`)")
 
             labels = model.labels_
 
@@ -461,35 +499,9 @@ def train():
                 accuracy_train = np.mean(predicted_labels == y_train)
                 st.write(f"🎯 **Độ chính xác trên tập train:** `{accuracy_train * 100:.2f}%`")
 
-                # Kiểm tra và tính độ chính xác trên tập validation và test nếu có
-                if "X_val" in st.session_state and "y_val" in st.session_state:
-                    X_val = st.session_state["X_val"]
-                    y_val = st.session_state["y_val"]
-                    X_val_norm = (X_val / 255.0).reshape(X_val.shape[0], -1)
-                    X_val_pca = pca.transform(X_val_norm)
-                    val_labels = model.predict(X_val_pca)
-                    predicted_val_labels = np.array([label_mapping.get(label, -1) for label in val_labels])
-                    accuracy_val = np.mean(predicted_val_labels == y_val)
-                    st.write(f"🎯 **Độ chính xác trên tập validation:** `{accuracy_val * 100:.2f}%`")
-
-                if "X_test" in st.session_state and "y_test" in st.session_state:
-                    X_test = st.session_state["X_test"]
-                    y_test = st.session_state["y_test"]
-                    X_test_norm = (X_test / 255.0).reshape(X_test.shape[0], -1)
-                    X_test_pca = pca.transform(X_test_norm)
-                    test_labels = model.predict(X_test_pca)
-                    predicted_test_labels = np.array([label_mapping.get(label, -1) for label in test_labels])
-                    accuracy_test = np.mean(predicted_test_labels == y_test)
-                    st.write(f"🎯 **Độ chính xác trên tập test:** `{accuracy_test * 100:.2f}%`")
-
-                # Log vào MLflow
                 mlflow.log_param("model", "K-Means")
                 mlflow.log_param("n_clusters", n_clusters)
                 mlflow.log_metric("accuracy_train", accuracy_train)
-                if "accuracy_val" in locals():
-                    mlflow.log_metric("accuracy_val", accuracy_val)
-                if "accuracy_test" in locals():
-                    mlflow.log_metric("accuracy_test", accuracy_test)
                 mlflow.sklearn.log_model(model, "kmeans_model")
 
             elif model_choice == "DBSCAN":
@@ -499,7 +511,6 @@ def train():
                 st.write(f"🔍 **Số cụm tìm thấy:** `{n_clusters_found}`")
                 st.write(f"🚨 **Tỉ lệ nhiễu:** `{noise_ratio * 100:.2f}%`")
 
-                # Log vào MLflow
                 mlflow.log_param("model", "DBSCAN")
                 mlflow.log_param("eps", eps)
                 mlflow.log_param("min_samples", min_samples)
@@ -510,20 +521,12 @@ def train():
             if "models" not in st.session_state:
                 st.session_state["models"] = []
 
-            model_name = model_choice.lower().replace(" ", "_")
-            count = 1
-            new_model_name = model_name
-            while any(m["name"] == new_model_name for m in st.session_state["models"]):
-                new_model_name = f"{model_name}_{count}"
-                count += 1
-
-            st.session_state["models"].append({"name": new_model_name, "model": model})
-            st.write(f"🔹 **Mô hình đã được lưu với tên:** `{new_model_name}`")
+            st.session_state["models"].append({"name": run_name, "model": model})
+            st.write(f"🔹 **Mô hình đã được lưu với tên:** `{run_name}`")
             st.write(f"📋 **Danh sách các mô hình:** {[m['name'] for m in st.session_state['models']]}")
             mlflow.end_run()
             st.success("✅ Đã log dữ liệu!")
             st.markdown(f"### 🔗 [Truy cập MLflow]({st.session_state['mlflow_url']})")
-
 
 def du_doan():
     st.header("Demo Dự đoán Cụm")
@@ -580,155 +583,128 @@ def du_doan():
     else:
         st.info("Vui lòng thực hiện phân cụm và huấn luyện mô hình trước.")
 
+def format_time_relative(timestamp_ms):
+    """Chuyển timestamp milliseconds thành thời gian dễ đọc."""
+    if timestamp_ms is None:
+        return "N/A"
+    dt = datetime.fromtimestamp(timestamp_ms / 1000)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
 def display_mlflow_experiments():
-    try:
-        st.title("🔍 Quản lý MLflow Experiments")
+    """Hiển thị danh sách Runs trong MLflow."""
+    st.title("📊 MLflow Experiment Viewer")
 
-        # Kết nối MlflowClient
-        client = MlflowClient()
+    mlflow_input()
 
-        # Lấy danh sách thí nghiệm
-        experiments = mlflow.search_experiments()
-        
-        if experiments:
-            st.write("### 📌 Danh sách Thí nghiệm")
-            experiment_data = [
-                {"Experiment ID": exp.experiment_id, "Experiment Name": exp.name, "Artifact Location": exp.artifact_location}
-                for exp in experiments
-            ]
-            st.data_editor(pd.DataFrame(experiment_data))
-            
-            # Chọn thí nghiệm
-            selected_exp_id = st.selectbox("🗂 Chọn thí nghiệm", sorted([exp.experiment_id for exp in experiments]))
-            
-            # Đổi tên thí nghiệm
-            new_exp_name = st.text_input("✏️ Nhập tên mới cho thí nghiệm", "")
-            if st.button("💾 Đổi tên") and new_exp_name:
-                client.rename_experiment(selected_exp_id, new_exp_name)
-                st.success("✅ Đổi tên thành công! Vui lòng tải lại trang.")
-            
-            # Xóa thí nghiệm
-            if st.button("🗑️ Xóa thí nghiệm"):
-                client.delete_experiment(selected_exp_id)
-                st.success("✅ Xóa thí nghiệm thành công! Vui lòng tải lại trang.")
-            
-            # Lấy danh sách runs trong thí nghiệm đã chọn
-            runs = client.search_runs(experiment_ids=[selected_exp_id])
-            if runs:
-                st.write("### 📌 Danh sách Run")
-                
-                # Bộ lọc tìm kiếm Run
-                search_term = st.text_input("🔍 Tìm kiếm Run", "")
-                
-                # Bộ lọc theo khoảng thời gian
-                start_date = st.date_input("📅 Chọn ngày bắt đầu", pd.to_datetime("2023-01-01"))
-                end_date = st.date_input("📅 Chọn ngày kết thúc", pd.to_datetime("today"))
-                
-                # Bộ lọc theo trạng thái Run
-                status_filter = st.multiselect("📌 Lọc theo trạng thái", ["RUNNING", "FINISHED", "FAILED", "KILLED"], default=["RUNNING", "FINISHED"])
-                
-                # Hiển thị danh sách Runs
-                run_data = [
-                    {
-                        "Run ID": run.info.run_id,
-                        "Run Name": run.data.tags.get("mlflow.runName", "Unnamed"),
-                        "Start Time": pd.to_datetime(run.info.start_time, unit='ms'),
-                        "End Time": pd.to_datetime(run.info.end_time, unit='ms') if run.info.end_time else None,
-                        "Duration": (pd.to_datetime(run.info.end_time, unit='ms') - pd.to_datetime(run.info.start_time, unit='ms')).total_seconds() if run.info.end_time else None,
-                        "Status": run.info.status,
-                        "Source": run.data.tags.get("mlflow.source.name", "Unknown"),
-                        "Metrics": run.data.metrics
-                    }
-                    for run in runs
-                ]
-                df_runs = pd.DataFrame(run_data).sort_values(by="Start Time", ascending=False)
-                
-                # Áp dụng bộ lọc
-                df_runs = df_runs[(df_runs["Start Time"] >= pd.to_datetime(start_date)) & (df_runs["Start Time"] <= pd.to_datetime(end_date))]
-                df_runs = df_runs[df_runs["Status"].isin(status_filter)]
-                
-                if search_term:
-                    df_runs = df_runs[df_runs["Run Name"].str.contains(search_term, case=False, na=False)]
-                
-                # Bộ lọc theo Metrics cụ thể
-                metric_name = st.text_input("📊 Nhập tên Metric để lọc", "accuracy")
-                metric_value = st.number_input("📈 Giá trị tối thiểu của Metric", min_value=0.0, step=0.01, format="%.2f")
-                
-                def filter_by_metric(run):
-                    return metric_name in run["Metrics"] and run["Metrics"][metric_name] >= metric_value
-                
-                df_runs = df_runs[df_runs.apply(filter_by_metric, axis=1)]
-                
-                st.data_editor(df_runs)
-                
-                run_options = {run["Run ID"]: f"{run['Run Name']} - {run['Run ID']}" for _, run in df_runs.iterrows()}
-                        
-                # Chọn Run trong thí nghiệm để đổi tên hoặc xóa
-                runs = client.search_runs(experiment_ids=[selected_exp_id])
-                if runs:
-                    run_options = {run.info.run_id: f"{run.data.tags.get('mlflow.runName', 'Unnamed')} - {run.info.run_id}" for run in runs}
-                    selected_run_id = st.selectbox("✏️ Chọn Run để đổi tên", list(run_options.keys()), format_func=lambda x: run_options[x])
-                    new_run_name = st.text_input("📛 Nhập tên mới cho Run", "")
-                    if st.button("✅ Cập nhật tên Run") and new_run_name:
-                        client.set_tag(selected_run_id, "mlflow.runName", new_run_name)
-                        st.success("✅ Cập nhật tên Run thành công! Vui lòng tải lại trang.")
-                    
-                    selected_run_id_delete = st.selectbox("🗑️ Chọn Run để xóa", list(run_options.keys()), format_func=lambda x: run_options[x])
-                    if st.button("❌ Xóa Run"):
-                        client.delete_run(selected_run_id_delete)
-                        st.success("✅ Xóa Run thành công! Vui lòng tải lại trang.")
-                    
+    experiment_name = "Clustering Algorithms"
+    experiments = mlflow.search_experiments()
+    selected_experiment = next((exp for exp in experiments if exp.name == experiment_name), None)
 
-                # Chọn Run để xem chi tiết
-                selected_run_id = st.selectbox("🔍 Chọn Run để xem chi tiết", list(run_options.keys()), format_func=lambda x: run_options[x])
-                selected_run = client.get_run(selected_run_id)
-                
-                st.write("### 📋 Thông tin Run")
-                st.write(f"**Run ID:** {selected_run_id}")
-                st.write(f"**Run Name:** {selected_run.data.tags.get('mlflow.runName', 'Unnamed')}")
-                st.write(f"**Start Time:** {pd.to_datetime(selected_run.info.start_time, unit='ms')}")
-                st.write(f"**End Time:** {pd.to_datetime(selected_run.info.end_time, unit='ms') if selected_run.info.end_time else 'N/A'}")
-                st.write(f"**Duration:** {(pd.to_datetime(selected_run.info.end_time, unit='ms') - pd.to_datetime(selected_run.info.start_time, unit='ms')).total_seconds() if selected_run.info.end_time else 'N/A'} seconds")
-                st.write(f"**Status:** {selected_run.info.status}")
-                st.write(f"**Source:** {selected_run.data.tags.get('mlflow.source.name', 'Unknown')}")
-                
-                # Hiển thị Metrics
-                st.write("### 📊 Metrics")
-                metrics = selected_run.data.metrics
-                if metrics:
-                    df_metrics = pd.DataFrame(metrics.items(), columns=["Metric Name", "Value"])
-                    st.data_editor(df_metrics)
-                else:
-                    st.write("📭 Không có Metrics nào.")
-                
-                # Hiển thị Artifacts
-                artifact_uri = selected_run.info.artifact_uri
-                st.write(f"**Artifact Location:** {artifact_uri}")
-                
-                st.write("### 📂 Danh sách Artifacts")
-                artifacts = client.list_artifacts(selected_run_id)
-                if artifacts:
-                    artifact_paths = [artifact.path for artifact in artifacts]
-                    st.write(artifact_paths)
-                    for artifact in artifacts:
-                        if artifact.path.endswith(".png") or artifact.path.endswith(".jpg"):
-                            st.image(f"{artifact_uri}/{artifact.path}", caption=artifact.path)
-                        if artifact.path.endswith(".csv") or artifact.path.endswith(".txt"):
-                            with open(f"{artifact_uri}/{artifact.path}", "r") as f:
-                                st.download_button(label=f"📥 Tải {artifact.path}", data=f.read(), file_name=artifact.path)
-                else:
-                    st.write("📭 Không có artifacts nào.")
-                
-                # Truy cập MLflow UI
-                st.write("### 🔗 Truy cập MLflow UI")
-                st.markdown("[Mở MLflow UI](https://dagshub.com/Snxtruc/HocMayVoiPython.mlflow)")
-            else:
-                st.warning("⚠️ Không có Run nào trong thí nghiệm này.")
+    if not selected_experiment:
+        st.error(f"❌ Experiment '{experiment_name}' không tồn tại!")
+        return
+
+    st.subheader(f"📌 Experiment: {experiment_name}")
+    st.write(f"**Experiment ID:** {selected_experiment.experiment_id}")
+    st.write(f"**Trạng thái:** {'Active' if selected_experiment.lifecycle_stage == 'active' else 'Deleted'}")
+    st.write(f"**Vị trí lưu trữ:** {selected_experiment.artifact_location}")
+
+    # Lấy danh sách Runs
+    runs = mlflow.search_runs(experiment_ids=[selected_experiment.experiment_id])
+
+    if runs.empty:
+        st.warning("⚠ Không có runs nào trong experiment này.")
+        return
+
+    # Xử lý dữ liệu runs để hiển thị
+    run_info = []
+    for _, run in runs.iterrows():
+        run_id = run["run_id"]
+        run_data = mlflow.get_run(run_id)
+        run_tags = run_data.data.tags
+        run_name = run_tags.get("mlflow.runName", f"Run {run_id[:8]}")  # Lấy tên từ tags nếu có
+        created_time = format_time_relative(run_data.info.start_time)
+        duration = (run_data.info.end_time - run_data.info.start_time) / 1000 if run_data.info.end_time else "Đang chạy"
+        source = run_tags.get("mlflow.source.name", "Unknown")
+
+        run_info.append({
+            "Run Name": run_name,
+            "Run ID": run_id,
+            "Created": created_time,
+            "Duration (s)": duration if isinstance(duration, str) else f"{duration:.1f}s",
+            "Source": source
+        })
+
+    # Sắp xếp run theo thời gian chạy (mới nhất trước)
+    run_info_df = pd.DataFrame(run_info)
+    run_info_df = run_info_df.sort_values(by="Created", ascending=False)
+
+    # Hiển thị danh sách Runs trong bảng
+    st.write("### 🏃‍♂️ Danh sách Runs:")
+    st.dataframe(run_info_df, use_container_width=True)
+
+    # Chọn Run từ dropdown
+    run_names = run_info_df["Run Name"].tolist()
+    selected_run_name = st.selectbox("🔍 Chọn một Run để xem chi tiết:", run_names)
+
+    # Lấy Run ID tương ứng
+    selected_run_id = run_info_df.loc[run_info_df["Run Name"] == selected_run_name, "Run ID"].values[0]
+
+    # Lấy thông tin Run
+    selected_run = mlflow.get_run(selected_run_id)
+
+    # --- 📝 ĐỔI TÊN RUN ---
+    st.write("### ✏️ Đổi tên Run")
+    new_run_name = st.text_input("Nhập tên mới:", selected_run_name)
+    if st.button("💾 Lưu tên mới"):
+        try:
+            mlflow.set_tag(selected_run_id, "mlflow.runName", new_run_name)
+            st.success(f"✅ Đã đổi tên thành **{new_run_name}**. Hãy tải lại trang để thấy thay đổi!")
+        except Exception as e:
+            st.error(f"❌ Lỗi khi đổi tên: {e}")
+
+    # --- 🗑️ XÓA RUN ---
+    st.write("### ❌ Xóa Run")
+    if st.button("🗑️ Xóa Run này"):
+        try:
+            mlflow.delete_run(selected_run_id)
+            st.success(f"✅ Đã xóa run **{selected_run_name}**! Hãy tải lại trang để cập nhật danh sách.")
+        except Exception as e:
+            st.error(f"❌ Lỗi khi xóa run: {e}")
+
+    # --- HIỂN THỊ CHI TIẾT RUN ---
+    if selected_run:
+        st.subheader(f"📌 Thông tin Run: {selected_run_name}")
+        st.write(f"**Run ID:** {selected_run_id}")
+        st.write(f"**Trạng thái:** {selected_run.info.status}")
+
+        start_time_ms = selected_run.info.start_time
+        if start_time_ms:
+            start_time = datetime.fromtimestamp(start_time_ms / 1000).strftime("%Y-%m-%d %H:%M:%S")
         else:
-            st.warning("⚠️ Không có Thí nghiệm nào được tìm thấy.")
-    except Exception as e:
-        st.error(f"❌ Lỗi khi lấy danh sách thí nghiệm: {e}")
+            start_time = "Không có thông tin"
 
+        st.write(f"**Thời gian chạy:** {start_time}")
+
+        # Hiển thị thông số đã log
+        params = selected_run.data.params
+        metrics = selected_run.data.metrics
+
+        if params:
+            st.write("### ⚙️ Parameters:")
+            st.json(params)
+
+        if metrics:
+            st.write("### 📊 Metrics:")
+            st.json(metrics)
+
+        # Hiển thị model artifact (nếu có)
+        model_artifact_path = f"{st.session_state['mlflow_url']}/{selected_experiment.experiment_id}/{selected_run_id}/artifacts/model"
+        st.write("### 📂 Model Artifact:")
+        st.write(f"📥 [Tải mô hình]({model_artifact_path})")
+
+    else:
+        st.warning("⚠ Không tìm thấy thông tin cho run này.")
 
 
 def ClusteringAlgorithms():
@@ -769,12 +745,11 @@ def ClusteringAlgorithms():
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "📘 Lý thuyết K-MEANS", 
     "📘 Lý thuyết DBSCANS", 
-    "📘 Review database", 
+    "📘 Data", 
     "📥 Tải dữ liệu", 
     "🔀 Chia dữ liệu", 
     "🤖 Phân cụm", 
-    "🔍 Thông tin phân cụm",
-    "🧠 Dự đoán"
+    "🔍 Thông tin phân cụm"
     ])
 
 
@@ -798,9 +773,6 @@ def ClusteringAlgorithms():
 
     with tab7: 
         display_mlflow_experiments() 
-    
-    with tab8: 
-        du_doan()
 
 def run():
     ClusteringAlgorithms()
