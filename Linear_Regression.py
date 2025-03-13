@@ -6,6 +6,7 @@ import pandas as pd
 from math import sqrt
 from sklearn.datasets import make_regression
 import joblib
+import datetime
 from scipy.stats import zscore
 from mlflow.tracking import MlflowClient 
 from sklearn.preprocessing import LabelEncoder, PolynomialFeatures
@@ -248,19 +249,7 @@ def chia_du_lieu():
     - **70%**: để train mô hình.
     - **15%**: để validation, dùng để điều chỉnh tham số.
     - **15%**: để test, đánh giá hiệu suất thực tế.
-
-    ```python
-    from sklearn.model_selection import train_test_split
-
-    # Chia dữ liệu theo tỷ lệ 85% (Train) - 15% (Test)
-    X_train_full, X_test, y_train_full, y_test = train_test_split(X, y, test_size=0.15, stratify=y, random_state=42)
-
-    # Chia tiếp 15% của Train để làm Validation (~12.75% của toàn bộ dữ liệu)
-    val_size = 0.15 / 0.85  
-    X_train, X_val, y_train, y_val = train_test_split(X_train_full, y_train_full, test_size=val_size, stratify=y_train_full, random_state=42)
-    ```
     """)
-
 
     if "df" not in st.session_state:
         st.error("❌ Dữ liệu chưa được tải lên!")
@@ -276,12 +265,21 @@ def chia_du_lieu():
     st.write(f"📌 **Tỷ lệ phân chia:** Test={test_size}%, Validation={val_size}%, Train={remaining_size - val_size}%")
 
     if st.button("✅ Xác nhận Chia"):
+        progress_bar = st.progress(0)
+        progress_text = st.empty()  # Placeholder để hiển thị % tiến trình
+        
         st.write(f"⏳ Đang chia dữ liệu...")  
 
-        # Chia dữ liệu thành Test trước
+        # Bước 1: Chia tập Test
+        progress_bar.progress(30)
+        progress_text.text("🔄 Tiến trình: 30% - Đang chia tập Test...")
+        time.sleep(0.5)
         train_full, test = train_test_split(df, test_size=test_size/100, random_state=42)
         
-        # Chia tiếp phần còn lại thành Train và Validation
+        # Bước 2: Chia tập Train và Validation
+        progress_bar.progress(70)
+        progress_text.text("🔄 Tiến trình: 70% - Đang chia tập Train và Validation...")
+        time.sleep(0.5)
         train, val = train_test_split(train_full, test_size=val_size / (100 - test_size), random_state=42)
 
         # Lưu vào session_state
@@ -296,6 +294,9 @@ def chia_du_lieu():
         })
         st.table(summary_df)
 
+        # Hoàn thành
+        progress_bar.progress(100)
+        progress_text.text("✅ Tiến trình: 100% - Hoàn thành chia dữ liệu!")
         st.success("✅ Dữ liệu đã được chia thành công!")
 
 
@@ -406,16 +407,19 @@ def train_and_log_model():
     
     # Nút để huấn luyện mô hình
     if st.button("🚀 Huấn luyện mô hình"):
+        progress_bar = st.progress(0)
+        progress_text = st.empty()
+
         st.write("🔄 Đang huấn luyện mô hình...")
-        
+
         # Tạo dữ liệu giả lập để huấn luyện
         X, y = make_regression(n_samples=100, n_features=2, noise=0.1)
-        
+
         kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
         mse_scores, rmse_scores, r2_scores = [], [], []
         
         with mlflow.start_run() as run:
-            for train_index, test_index in kf.split(X):
+            for fold_idx, (train_index, test_index) in enumerate(kf.split(X)):
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
                 
@@ -448,7 +452,14 @@ def train_and_log_model():
                 mse_scores.append(mse)
                 rmse_scores.append(rmse)
                 r2_scores.append(r2)
-            
+
+                # Cập nhật tiến trình
+                progress = int(((fold_idx + 1) / n_splits) * 100)
+                progress_bar.progress(progress)
+                progress_text.text(f"🔄 Tiến trình: {progress}% - Huấn luyện Fold {fold_idx + 1}/{n_splits}")
+
+                time.sleep(0.5)  # Giả lập thời gian chờ huấn luyện
+
             # Log giá trị trung bình của các metrics lên MLflow
             mlflow.log_metrics({
                 "MSE": np.mean(mse_scores),
@@ -475,159 +486,132 @@ def train_and_log_model():
             st.markdown(f"🔗 **Tải mô hình:** [Download {model_filename}](./{model_filename})")
             st.markdown(f"🔗 **MLflow Tracking:** [Xem kết quả trên MLflow]({mlflow_run_url})")
             
+            progress_bar.progress(100)
+            progress_text.text("✅ Tiến trình: 100% - Hoàn thành huấn luyện!")
             st.success("✅ Huấn luyện và logging hoàn tất!")
 
 
 ##------------------------------------ TRACKING MLFLOW -------------------------------
+def format_time_relative(timestamp_ms):
+    """Chuyển timestamp milliseconds thành thời gian dễ đọc."""
+    if timestamp_ms is None:
+        return "N/A"
+    dt = datetime.datetime.fromtimestamp(timestamp_ms / 1000)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
 def display_mlflow_experiments():
-    try:
-        st.title("🔍 Quản lý MLflow Experiments")
+    """Hiển thị danh sách Runs trong MLflow với thanh trạng thái tiến trình."""
+    st.title("📊 MLflow Experiment Viewer")
 
-        # Kết nối MlflowClient
-        client = MlflowClient()
+    # Lấy danh sách thí nghiệm
+    experiment_name = "Linear Regressions"
+    experiments = mlflow.search_experiments()
+    selected_experiment = next((exp for exp in experiments if exp.name == experiment_name), None)
 
-        # Lấy danh sách thí nghiệm
-        experiments = mlflow.search_experiments()
-        
-        if experiments:
-            st.write("### 📌 Danh sách Thí nghiệm")
-            experiment_data = [
-                {"Experiment ID": exp.experiment_id, "Experiment Name": exp.name, "Artifact Location": exp.artifact_location}
-                for exp in experiments
-            ]
-            st.data_editor(pd.DataFrame(experiment_data))
-            
-            # Chọn thí nghiệm
-            selected_exp_id = st.selectbox("🗂 Chọn thí nghiệm", sorted([exp.experiment_id for exp in experiments]))
-            
-            # Đổi tên thí nghiệm
-            new_exp_name = st.text_input("✏️ Nhập tên mới cho thí nghiệm", "")
-            if st.button("💾 Đổi tên") and new_exp_name:
-                client.rename_experiment(selected_exp_id, new_exp_name)
-                st.success("✅ Đổi tên thành công! Vui lòng tải lại trang.")
-            
-            # Xóa thí nghiệm
-            if st.button("🗑️ Xóa thí nghiệm"):
-                client.delete_experiment(selected_exp_id)
-                st.success("✅ Xóa thí nghiệm thành công! Vui lòng tải lại trang.")
-            
-            # Lấy danh sách runs trong thí nghiệm đã chọn
-            runs = client.search_runs(experiment_ids=[selected_exp_id])
-            if runs:
-                st.write("### 📌 Danh sách Run")
-                
-                # Bộ lọc tìm kiếm Run
-                search_term = st.text_input("🔍 Tìm kiếm Run", "")
-                
-                # Bộ lọc theo khoảng thời gian
-                start_date = st.date_input("📅 Chọn ngày bắt đầu", pd.to_datetime("2023-01-01"))
-                end_date = st.date_input("📅 Chọn ngày kết thúc", pd.to_datetime("today"))
-                
-                # Bộ lọc theo trạng thái Run
-                status_filter = st.multiselect("📌 Lọc theo trạng thái", ["RUNNING", "FINISHED", "FAILED", "KILLED"], default=["RUNNING", "FINISHED"])
-                
-                # Hiển thị danh sách Runs
-                run_data = [
-                    {
-                        "Run ID": run.info.run_id,
-                        "Run Name": run.data.tags.get("mlflow.runName", "Unnamed"),
-                        "Start Time": pd.to_datetime(run.info.start_time, unit='ms'),
-                        "End Time": pd.to_datetime(run.info.end_time, unit='ms') if run.info.end_time else None,
-                        "Duration": (pd.to_datetime(run.info.end_time, unit='ms') - pd.to_datetime(run.info.start_time, unit='ms')).total_seconds() if run.info.end_time else None,
-                        "Status": run.info.status,
-                        "Source": run.data.tags.get("mlflow.source.name", "Unknown"),
-                        "Metrics": run.data.metrics
-                    }
-                    for run in runs
-                ]
-                df_runs = pd.DataFrame(run_data).sort_values(by="Start Time", ascending=False)
-                
-                # Áp dụng bộ lọc
-                df_runs = df_runs[(df_runs["Start Time"] >= pd.to_datetime(start_date)) & (df_runs["Start Time"] <= pd.to_datetime(end_date))]
-                df_runs = df_runs[df_runs["Status"].isin(status_filter)]
-                
-                if search_term:
-                    df_runs = df_runs[df_runs["Run Name"].str.contains(search_term, case=False, na=False)]
-                
-                # Bộ lọc theo Metrics cụ thể
-                metric_name = st.text_input("📊 Nhập tên Metric để lọc", "accuracy")
-                metric_value = st.number_input("📈 Giá trị tối thiểu của Metric", min_value=0.0, step=0.01, format="%.2f")
-                
-                def filter_by_metric(run):
-                    return metric_name in run["Metrics"] and run["Metrics"][metric_name] >= metric_value
-                
-                df_runs = df_runs[df_runs.apply(filter_by_metric, axis=1)]
-                
-                st.data_editor(df_runs)
-                
-                run_options = {run["Run ID"]: f"{run['Run Name']} - {run['Run ID']}" for _, run in df_runs.iterrows()}
-                        
-                # Chọn Run trong thí nghiệm để đổi tên hoặc xóa
-                runs = client.search_runs(experiment_ids=[selected_exp_id])
-                if runs:
-                    run_options = {run.info.run_id: f"{run.data.tags.get('mlflow.runName', 'Unnamed')} - {run.info.run_id}" for run in runs}
-                    selected_run_id = st.selectbox("✏️ Chọn Run để đổi tên", list(run_options.keys()), format_func=lambda x: run_options[x])
-                    new_run_name = st.text_input("📛 Nhập tên mới cho Run", "")
-                    if st.button("✅ Cập nhật tên Run") and new_run_name:
-                        client.set_tag(selected_run_id, "mlflow.runName", new_run_name)
-                        st.success("✅ Cập nhật tên Run thành công! Vui lòng tải lại trang.")
-                    
-                    selected_run_id_delete = st.selectbox("🗑️ Chọn Run để xóa", list(run_options.keys()), format_func=lambda x: run_options[x])
-                    if st.button("❌ Xóa Run"):
-                        client.delete_run(selected_run_id_delete)
-                        st.success("✅ Xóa Run thành công! Vui lòng tải lại trang.")
-                    
+    if not selected_experiment:
+        st.error(f"❌ Experiment '{experiment_name}' không tồn tại!")
+        return
 
-                # Chọn Run để xem chi tiết
-                selected_run_id = st.selectbox("🔍 Chọn Run để xem chi tiết", list(run_options.keys()), format_func=lambda x: run_options[x])
-                selected_run = client.get_run(selected_run_id)
-                
-                st.write("### 📋 Thông tin Run")
-                st.write(f"**Run ID:** {selected_run_id}")
-                st.write(f"**Run Name:** {selected_run.data.tags.get('mlflow.runName', 'Unnamed')}")
-                st.write(f"**Start Time:** {pd.to_datetime(selected_run.info.start_time, unit='ms')}")
-                st.write(f"**End Time:** {pd.to_datetime(selected_run.info.end_time, unit='ms') if selected_run.info.end_time else 'N/A'}")
-                st.write(f"**Duration:** {(pd.to_datetime(selected_run.info.end_time, unit='ms') - pd.to_datetime(selected_run.info.start_time, unit='ms')).total_seconds() if selected_run.info.end_time else 'N/A'} seconds")
-                st.write(f"**Status:** {selected_run.info.status}")
-                st.write(f"**Source:** {selected_run.data.tags.get('mlflow.source.name', 'Unknown')}")
-                
-                # Hiển thị Metrics
-                st.write("### 📊 Metrics")
-                metrics = selected_run.data.metrics
-                if metrics:
-                    df_metrics = pd.DataFrame(metrics.items(), columns=["Metric Name", "Value"])
-                    st.data_editor(df_metrics)
-                else:
-                    st.write("📭 Không có Metrics nào.")
-                
-                # Hiển thị Artifacts
-                artifact_uri = selected_run.info.artifact_uri
-                st.write(f"**Artifact Location:** {artifact_uri}")
-                
-                st.write("### 📂 Danh sách Artifacts")
-                artifacts = client.list_artifacts(selected_run_id)
-                if artifacts:
-                    artifact_paths = [artifact.path for artifact in artifacts]
-                    st.write(artifact_paths)
-                    for artifact in artifacts:
-                        if artifact.path.endswith(".png") or artifact.path.endswith(".jpg"):
-                            st.image(f"{artifact_uri}/{artifact.path}", caption=artifact.path)
-                        if artifact.path.endswith(".csv") or artifact.path.endswith(".txt"):
-                            with open(f"{artifact_uri}/{artifact.path}", "r") as f:
-                                st.download_button(label=f"📥 Tải {artifact.path}", data=f.read(), file_name=artifact.path)
-                else:
-                    st.write("📭 Không có artifacts nào.")
-                
-                # Truy cập MLflow UI
-                st.write("### 🔗 Truy cập MLflow UI")
-                st.markdown("[Mở MLflow UI](https://dagshub.com/Snxtruc/HocMayVoiPython.mlflow)")
-            else:
-                st.warning("⚠️ Không có Run nào trong thí nghiệm này.")
-        else:
-            st.warning("⚠️ Không có Thí nghiệm nào được tìm thấy.")
-    except Exception as e:
-        st.error(f"❌ Lỗi khi lấy danh sách thí nghiệm: {e}")
+    st.subheader(f"📌 Experiment: {experiment_name}")
+    st.write(f"**Experiment ID:** {selected_experiment.experiment_id}")
+    st.write(f"**Trạng thái:** {'Active' if selected_experiment.lifecycle_stage == 'active' else 'Deleted'}")
+    st.write(f"**Vị trí lưu trữ:** {selected_experiment.artifact_location}")
 
+    # --- 🏃‍♂️ Lấy danh sách Runs với thanh trạng thái ---
+    st.write("### 🔄 Đang tải danh sách Runs...")
+    runs = mlflow.search_runs(experiment_ids=[selected_experiment.experiment_id])
+
+    if runs.empty:
+        st.warning("⚠ Không có runs nào trong experiment này.")
+        return
+
+    total_runs = len(runs)
+    run_info = []
+    
+    progress_bar = st.progress(0)  # Thanh tiến trình
+
+    for i, (_, run) in enumerate(runs.iterrows()):
+        run_id = run["run_id"]
+        run_data = mlflow.get_run(run_id)
+        run_tags = run_data.data.tags
+        run_name = run_tags.get("mlflow.runName", f"Run {run_id[:8]}")  # Tên Run
+        created_time = format_time_relative(run_data.info.start_time)
+        duration = (run_data.info.end_time - run_data.info.start_time) / 1000 if run_data.info.end_time else "Đang chạy"
+        source = run_tags.get("mlflow.source.name", "Unknown")
+
+        run_info.append({
+            "Run Name": run_name,
+            "Run ID": run_id,
+            "Created": created_time,
+            "Duration (s)": duration if isinstance(duration, str) else f"{duration:.1f}s",
+            "Source": source
+        })
+
+        # Cập nhật thanh tiến trình
+        progress_bar.progress(int((i + 1) / total_runs * 100))
+
+    progress_bar.empty()  # Xóa thanh tiến trình khi hoàn thành
+
+    # Sắp xếp và hiển thị bảng danh sách Runs
+    run_info_df = pd.DataFrame(run_info).sort_values(by="Created", ascending=False)
+    st.write("### 🏃‍♂️ Danh sách Runs:")
+    st.dataframe(run_info_df, use_container_width=True)
+
+    # Chọn Run từ dropdown
+    run_names = run_info_df["Run Name"].tolist()
+    selected_run_name = st.selectbox("🔍 Chọn một Run để xem chi tiết:", run_names)
+
+    # Lấy Run ID tương ứng
+    selected_run_id = run_info_df.loc[run_info_df["Run Name"] == selected_run_name, "Run ID"].values[0]
+    selected_run = mlflow.get_run(selected_run_id)
+
+    # --- 📝 ĐỔI TÊN RUN ---
+    st.write("### ✏️ Đổi tên Run")
+    new_run_name = st.text_input("Nhập tên mới:", selected_run_name)
+    if st.button("💾 Lưu tên mới"):
+        try:
+            mlflow.set_tag(selected_run_id, "mlflow.runName", new_run_name)
+            st.success(f"✅ Đã đổi tên thành **{new_run_name}**. Hãy tải lại trang để thấy thay đổi!")
+        except Exception as e:
+            st.error(f"❌ Lỗi khi đổi tên: {e}")
+
+    # --- 🗑️ XÓA RUN ---
+    st.write("### ❌ Xóa Run")
+    if st.button("🗑️ Xóa Run này"):
+        try:
+            mlflow.delete_run(selected_run_id)
+            st.success(f"✅ Đã xóa run **{selected_run_name}**! Hãy tải lại trang để cập nhật danh sách.")
+        except Exception as e:
+            st.error(f"❌ Lỗi khi xóa run: {e}")
+
+    # --- HIỂN THỊ CHI TIẾT RUN ---
+    if selected_run:
+        st.subheader(f"📌 Thông tin Run: {selected_run_name}")
+        st.write(f"**Run ID:** {selected_run_id}")
+        st.write(f"**Trạng thái:** {selected_run.info.status}")
+
+        start_time_ms = selected_run.info.start_time
+        start_time = datetime.datetime.fromtimestamp(start_time_ms / 1000).strftime("%Y-%m-%d %H:%M:%S") if start_time_ms else "Không có thông tin"
+        st.write(f"**Thời gian chạy:** {start_time}")
+
+        # Hiển thị thông số đã log
+        params = selected_run.data.params
+        metrics = selected_run.data.metrics
+
+        if params:
+            st.write("### ⚙️ Parameters:")
+            st.json(params)
+
+        if metrics:
+            st.write("### 📊 Metrics:")
+            st.json(metrics)
+
+        # Hiển thị model artifact (nếu có)
+        model_artifact_path = f"{st.session_state['mlflow_url']}/{selected_experiment.experiment_id}/{selected_run_id}/artifacts/model"
+        st.write("### 📂 Model Artifact:")
+        st.write(f"📥 [Tải mô hình]({model_artifact_path})")
+    else:
+        st.warning("⚠ Không tìm thấy thông tin cho run này.")
 
 def predict_survival():
     df = pd.read_csv("data1.csv")
