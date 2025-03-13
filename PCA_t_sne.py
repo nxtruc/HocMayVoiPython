@@ -9,6 +9,7 @@ import mlflow
 import plotly.express as px
 import shutil
 import time
+import datetime
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 from mlflow.tracking import MlflowClient
@@ -25,115 +26,210 @@ from sklearn.model_selection import train_test_split
 
 
 def ly_thuyet_PCA(): 
-
-    st.title("Matrix Factorization")
-
+    st.header("📖 Lý thuyết về PCA")
+    st.markdown(" ### 1️⃣ PCA là gì?")
+    st.write("PCA (Principal Component Analysis) là một kỹ thuật phân tích dữ liệu dùng để giảm số chiều (dimension reduction) trong dữ liệu, giúp tìm ra các yếu tố quan trọng nhất (các thành phần chính) trong một tập dữ liệu có nhiều chiều. Mục tiêu của PCA là giảm số lượng các biến đầu vào trong khi vẫn giữ lại phần lớn thông tin trong dữ liệu.")
+    image_url = "https://machinelearningcoban.com/assets/27_pca/pca_var0.png"
+    article_url = "https://machinelearningcoban.com/2017/06/15/pca/"
     st.markdown(
-        """
-        **Matrix Factorization** là phương pháp phân rã ma trận để trích xuất đặc trưng và giảm chiều dữ liệu.
-        Các phương pháp phổ biến gồm:
-        - **Principal Component Analysis (PCA)**: Giảm chiều bằng cách tìm trục chính.
-        - **Singular Value Decomposition (SVD)**: Phân rã ma trận thành ba ma trận con.
-        - **Non-Negative Matrix Factorization (NMF)**: Xấp xỉ ma trận với các giá trị không âm.
-        """
-    )
-
-    # Tiêu đề phụ
-    st.header("🔢 Khái niệm PCA")
-    st.write("📉 PCA (Principal Component Analysis – Phân tích thành phần chính) là một kỹ thuật giảm chiều dữ liệu bằng cách tìm các hướng (thành phần chính) có phương sai lớn nhất trong dữ liệu.")
-
-    st.markdown(
-        """
+        f"""
         <div style="text-align: center;">
-            <img src="https://machinelearningcoban.com/assets/27_pca/pca_var0.png" width="300">
-            <p><em>Matrix Factorization</em></p>
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="200">
+            </a>
+            <p style="font-size: 14px; color: gray;"></p>
         </div>
-        """, 
+        """,
+        unsafe_allow_html=True
+    ) 
+    st.markdown(" ### 2️⃣ ý tưởng") 
+    st.write("""1. **Loại bỏ thành phần với phương sai nhỏ**: Trong PCA, các thành phần có phương sai nhỏ biểu thị chiều dữ liệu mà sự thay đổi không đáng kể. Do đó, ta có thể loại bỏ các thành phần này để giảm chiều dữ liệu mà không mất thông tin quan trọng.""")
+    image_url = "https://machinelearningcoban.com/assets/27_pca/pca_diagvar.png"
+    article_url = "https://machinelearningcoban.com/2017/06/15/pca/"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_url}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;"></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    ) 
+    st.write("""2. **Xoay dữ liệu để tăng phương sai**: PCA "xoay" dữ liệu sao cho các thành phần chính có phương sai lớn nhất. Điều này giúp chọn ra các chiều dữ liệu quan trọng nhất, giảm nhiễu và tối ưu hóa không gian dữ liệu.""")
+    image_path = "rotateTheImagePCA.jpeg"
+    # Hiển thị ảnh sử dụng Streamlit
+    st.image(image_path)
+
+    # URL bài viết
+    article_url = "https://setosa.io/ev/principal-component-analysis/"
+
+    # HTML để hiển thị ảnh và liên kết bài viết
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_path}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;">nguồn ảnh</p>
+        </div>
+        """,
         unsafe_allow_html=True
     )
+    st.markdown(" ### 3️⃣ Thuật toán PCA")
+    st.markdown(" ##### 1.Tìm điểm trung tâm (Mean Vector)")
+    st.markdown("""
+    Trước tiên, tính giá trị trung bình của từng đặc trưng (feature) trong tập dữ liệu.
+    Vector trung bình này giúp xác định "trung tâm" của dữ liệu. Công thức tính trung bình:
+    """)
+    st.latex(r"""
+    \mu = \frac{1}{n} \sum_{i=1}^{n} x_i
+    """)
+    st.markdown("""
+    Trong đó:
+    - \(n\) là số lượng mẫu dữ liệu.
+    - \(x_i\) là từng điểm dữ liệu.
+    """)
+    image_path = "img1.png"
+    # Hiển thị ảnh sử dụng Streamlit
+    st.image(image_path)
 
-    st.header("📌 Ý tưởng của PCA")
+    # URL bài viết
+    article_url = "https://machinelearningcoban.com/2017/06/15/pca/"
 
+    # HTML để hiển thị ảnh và liên kết bài viết
     st.markdown(
-        """
-        ### 1️⃣ Loại bỏ thành phần có phương sai nhỏ  
-        - PCA tìm các hướng có **phương sai lớn nhất** để giữ lại.  
-        - Các hướng có phương sai nhỏ bị loại bỏ vì chúng không đóng góp nhiều vào sự thay đổi của dữ liệu.  
-        
+        f"""
         <div style="text-align: center;">
-            <img src="https://machinelearningcoban.com/assets/27_pca/pca_diagvar.png" width="50%">
-        </div>
-
-        ### 2️⃣ Xoay dữ liệu theo trục chính  
-        - PCA tìm một hệ trục tọa độ mới sao cho dữ liệu được trải dài theo các trục có phương sai lớn.  
-        - Điều này giúp giảm chiều dữ liệu mà vẫn giữ lại nhiều thông tin quan trọng.  
-
-        <div style="text-align: center;">
-            <img src="https://setosa.io/ev/principal-component-analysis/fb-thumb.png" width="50%">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_path}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;">nguồn ảnh</p>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    st.header("📌 Công thức PCA")
-    st.write("📊 PCA sử dụng giá trị kỳ vọng, phương sai, ma trận hiệp phương sai và phân rã giá trị kỳ dị (SVD - Singular Value Decomposition) để tìm các thành phần chính.")
+    st.markdown(" ##### 2.Dịch chuyển dữ liệu về gốc tọa độ")
+    st.markdown("""
+    Để đảm bảo phân tích chính xác hơn, ta dịch chuyển dữ liệu sao cho trung tâm của nó nằm tại gốc tọa độ bằng cách trừ đi vector trung bình:
+    """)
+    st.latex(r"""
+    X_{norm} = X - \mu
+    """)
+    st.markdown("Khi đó, dữ liệu sẽ có giá trị trung bình bằng 0.")
+    mage_path = "img2.png"
+    # Hiển thị ảnh sử dụng Streamlit
+    st.image(image_path)
 
-    st.subheader("🧮 Bước 1: Chuẩn hóa dữ liệu")
-    st.latex(r"""
-    X = \begin{bmatrix}
-    x_{11} & x_{12} & \dots & x_{1d} \\
-    x_{21} & x_{22} & \dots & x_{2d} \\
-    \vdots & \vdots & \ddots & \vdots \\
-    x_{n1} & x_{n2} & \dots & x_{nd}
-    \end{bmatrix}
+    # URL bài viết
+    article_url = "https://machinelearningcoban.com/2017/06/15/pca/"
+
+    # HTML để hiển thị ảnh và liên kết bài viết
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_path}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;">nguồn ảnh</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    st.markdown(" ##### 3.Tính ma trận hiệp phương sai (Covariance Matrix)")
+    st.markdown("""
+    Ma trận hiệp phương sai giúp đo lường mức độ biến thiên giữa các đặc trưng:
     """)
-    st.write("📏 Trừ đi giá trị trung bình của từng đặc trưng để đưa dữ liệu về trung tâm gốc tọa độ:")
     st.latex(r"""
-    \bar{x}_j = \frac{1}{n} \sum_{i=1}^{n} x_{ij}
+    C = \frac{1}{n} X_{norm}^T X_{norm}
     """)
-    st.latex(r"""
-    X' = X - \bar{X}
+    st.markdown("""
+    Ý nghĩa:
+    - Nếu phần tử \( C_{ij} \) có giá trị lớn $\rightarrow$ Hai đặc trưng \(i\) và \(j\) có mối tương quan mạnh.
+    - Nếu \( C_{ij} \) gần 0 $\rightarrow$ Hai đặc trưng không liên quan nhiều.
     """)
 
-    st.subheader("📐 Bước 2: Tính ma trận hiệp phương sai")
-    st.latex(r"""
-    C = \frac{1}{n-1} X'^T X'
+    st.markdown(" ##### 4.Tìm các hướng quan trọng nhất (Eigenvalues & Eigenvectors)")
+    st.markdown("""
+    Tính trị riêng (eigenvalues) và vector riêng (eigenvectors) từ ma trận hiệp phương sai:
     """)
-    st.write("🔗 C là ma trận d × d, biểu diễn mối quan hệ tuyến tính giữa các đặc trưng.")
-
-    st.subheader("🧩 Bước 3: Tính toán vector riêng và giá trị riêng")
     st.latex(r"""
     C v = \lambda v
     """)
-    st.write("📌 Trong đó:")
-    st.write("- 🔹 v là vector riêng (eigenvector) (hướng chính của dữ liệu).")
-    st.write("- 🔸 λ là giá trị riêng (eigenvalue) (lượng phương sai giữ lại trên hướng đó).")
-    st.write("📌 Chọn k vector riêng tương ứng với k giá trị riêng lớn nhất.")
-
-    st.subheader("🔀 Bước 4: Chuyển đổi dữ liệu sang không gian mới")
-    st.latex(r"""
-    Z = X' W
+    st.markdown("""
+    Trong đó:
+    - \(v\) là vector riêng (eigenvector) - đại diện cho các hướng chính của dữ liệu.
+    - \(\lambda\) là trị riêng (eigenvalue) - thể hiện độ quan trọng của từng hướng.
+    Vector riêng có trị riêng lớn hơn sẽ mang nhiều thông tin quan trọng hơn.
     """)
-    st.write("📂 Ma trận các thành phần chính W chứa các vector riêng tương ứng với k giá trị riêng lớn nhất.")
-    st.write("📉 Ma trận Z là dữ liệu mới sau khi giảm chiều.") 
 
+    st.markdown(" ##### 5.Chọn số chiều mới và tạo không gian con")
+    st.markdown("""
+    Chọn \(K\) vector riêng tương ứng với \(K\) trị riêng lớn nhất để tạo thành ma trận \(U_K\):
+    """)
+    st.latex(r"""
+    U_K = [v_1, v_2, \dots, v_K]
+    """)
+    st.markdown("Các vector này tạo thành không gian trực giao và giúp biểu diễn dữ liệu tối ưu trong không gian mới.")
+    mage_path = "img4.png"
+    # Hiển thị ảnh sử dụng Streamlit
+    st.image(image_path)
 
+    # URL bài viết
+    article_url = "https://machinelearningcoban.com/2017/06/15/pca/"
 
-    # Thêm phần ưu điểm và nhược điểm của PCA
-    st.header("✅ Ưu điểm & ❌ Nhược điểm của PCA")
+    # HTML để hiển thị ảnh và liên kết bài viết
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{article_url}" target="_blank">
+                <img src="{image_path}" width="300">
+            </a>
+            <p style="font-size: 14px; color: gray;">nguồn ảnh</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    st.subheader("✅ Ưu điểm:")
-    st.write("- 📊 Giảm chiều dữ liệu, giúp tăng tốc độ huấn luyện mô hình.")
-    st.write("- 🎯 Loại bỏ nhiễu trong dữ liệu, giúp mô hình chính xác hơn.")
-    st.write("- 🔄 Giúp trực quan hóa dữ liệu tốt hơn bằng cách giảm xuống 2D hoặc 3D.")
+    st.markdown(" ##### 6.Chiếu dữ liệu vào không gian mới")
+    st.markdown("""
+    Biểu diễn dữ liệu trong hệ trục mới bằng cách nhân dữ liệu chuẩn hóa với ma trận \(U_K\):
+    """)
+    st.latex(r"""
+    X_{new} = X_{norm} U_K
+    """)
+    st.markdown("Dữ liệu mới \(X_{new}\) có số chiều ít hơn nhưng vẫn giữ lại thông tin quan trọng.")
 
-    st.subheader("❌ Nhược điểm:")
-    st.write("- 🔍 Mất một phần thông tin khi giảm chiều, có thể ảnh hưởng đến hiệu suất mô hình.")
-    st.write("- 🏷️ PCA không bảo toàn tính diễn giải của dữ liệu, do các thành phần chính không tương ứng với đặc trưng ban đầu.")
-    st.write("- 🧮 Giả định rằng dữ liệu có quan hệ tuyến tính, không phù hợp với dữ liệu phi tuyến.")  
-    
+    mage_path = "img5.png"
+    # Hiển thị ảnh sử dụng Streamlit
+    st.image(image_path)
 
-    st.markdown("## 📉 Minh họa thu gọn chiều bằng PCA")
+    # URL bài viết
+    article_url = "https://machinelearningcoban.com/2017/06/15/pca/"
+
+    # HTML để hiển thị ảnh và liên kết bài viết
+    st.markdown(
+    f"""
+    <div style="text-align: center;">
+        <a href="{article_url}" target="_blank">
+            <img src="{image_path}" width="300">
+        </a>
+        <p style="font-size: 14px; color: gray;">Nguồn ảnh</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+    )
+
+    st.markdown(" ##### 7.Dữ liệu mới")
+    st.markdown("""
+    Dữ liệu mới \(X_{new}\) là tọa độ của các điểm trong không gian mới, với các thành phần chính làm trục mới.
+    """)
+    st.markdown("## 4️⃣ Minh họa thu gọn chiều bằng PCA")
+
     # Tham số điều chỉnh với tooltip
     num_samples = st.slider("Số điểm dữ liệu 🟢", 100, 1000, 300, step=50, help="Số lượng điểm dữ liệu được tạo ra để thực hiện phân tích PCA. Giá trị càng lớn, dữ liệu càng phong phú nhưng cũng có thể làm tăng thời gian xử lý.")
     num_features = st.slider("Số chiều ban đầu 🔵", 3, 10, 3, help="Số lượng đặc trưng (features) ban đầu của dữ liệu. PCA sẽ giúp giảm số chiều này trong khi vẫn giữ lại tối đa thông tin quan trọng.")
@@ -337,8 +433,7 @@ def train_model():
         st.session_state["mlflow_url"] = ""
 
     # Nhập tên thí nghiệm
-    st.session_state["run_name"] = st.text_input("🔖 Đặt tên thí nghiệm:", value=st.session_state["run_name"], 
-                                                 help="Tên thí nghiệm giúp dễ dàng theo dõi các lần chạy trên MLflow.")
+    st.session_state["run_name"] = st.text_input("🔖 Đặt tên thí nghiệm:", value=st.session_state["run_name"])
 
     # Load dữ liệu
     Xmt = np.load("X.npy")
@@ -347,30 +442,28 @@ def train_model():
     y = ymt.reshape(-1) 
 
     # Tùy chọn thuật toán
-    method = st.radio("Chọn phương pháp giảm chiều", ["PCA", "t-SNE"], 
-                      help="Phương pháp giảm chiều dữ liệu: PCA giúp giảm chiều bằng cách giữ lại phương sai lớn nhất, trong khi t-SNE giúp nhúng dữ liệu vào không gian có số chiều thấp hơn dựa trên xác suất tương đồng.")
-    n_components = st.slider("Chọn số chiều giảm xuống", 2, 50, 2, 
-                             help="Số chiều đầu ra của dữ liệu sau khi giảm chiều. Giá trị này quyết định số lượng thành phần giữ lại trong dữ liệu sau khi áp dụng phương pháp giảm chiều.")
+    method = st.radio("Chọn phương pháp giảm chiều", ["PCA", "t-SNE"])
+    n_components = st.slider("Chọn số chiều giảm xuống", 2, 50, 2)
 
     # Chọn cách trực quan hóa
-    visualization_dim = st.radio("Chọn cách trực quan hóa", ["2D", "3D"], 
-                                 help="Chọn cách hiển thị dữ liệu sau khi giảm chiều. 2D hiển thị trên mặt phẳng, 3D hiển thị trên không gian ba chiều.")
+    visualization_dim = st.radio("Chọn cách trực quan hóa", ["2D", "3D"])
     
     # Nếu chọn t-SNE, thêm tùy chọn Perplexity
     perplexity = 30
     if method == "t-SNE":
-        perplexity = st.slider("Chọn Perplexity", 5, 50, 30, step=5, 
-                               help="Perplexity là tham số ảnh hưởng đến cách t-SNE cân bằng giữa cấu trúc cục bộ và toàn cục. Giá trị thấp giúp bảo toàn các cụm nhỏ, giá trị cao giúp phản ánh cấu trúc tổng thể.")
+        perplexity = st.slider("Chọn Perplexity", 5, 50, 30, step=5)
 
     # Thanh trượt chọn số lượng mẫu sử dụng từ MNIST
-    num_samples = st.slider("Chọn số lượng mẫu MNIST sử dụng:", min_value=1000, max_value=60000, value=5000, step=1000, 
-                            help="Số lượng mẫu dữ liệu từ tập MNIST sẽ được sử dụng để huấn luyện. Số mẫu lớn giúp cải thiện kết quả nhưng có thể làm tăng thời gian xử lý.")
+    num_samples = st.slider("Chọn số lượng mẫu MNIST sử dụng:", 1000, 60000, 5000, step=1000)
 
     # Giới hạn số mẫu để tăng tốc
     X_subset, y_subset = X[:num_samples], y[:num_samples]
 
     if st.button("🚀 Chạy giảm chiều"):
         with st.spinner("Đang xử lý..."):
+            progress_bar = st.progress(0)  # Khởi tạo thanh tiến trình
+            status_text = st.empty()  # Ô hiển thị phần trăm tiến trình
+
             mlflow.start_run(run_name=st.session_state["run_name"])
             mlflow.log_param("experiment_name", st.session_state["run_name"])
             mlflow.log_param("method", method)
@@ -385,7 +478,16 @@ def train_model():
                 reducer = PCA(n_components=n_components)
 
             start_time = time.time()
-            X_reduced = reducer.fit_transform(X_subset)
+
+            # Huấn luyện mô hình và cập nhật tiến trình
+            for i in range(1, 101):
+                time.sleep(0.02)  # Mô phỏng thời gian xử lý
+                progress_bar.progress(i)  # Cập nhật tiến trình
+                status_text.text(f"🔄 Tiến độ: {i}%")  # Hiển thị phần trăm
+
+                if i == 50:  # Bắt đầu huấn luyện khi tiến trình đạt 50%
+                    X_reduced = reducer.fit_transform(X_subset)
+
             elapsed_time = time.time() - start_time
             mlflow.log_metric("elapsed_time", elapsed_time)
 
@@ -398,14 +500,12 @@ def train_model():
             # Hiển thị kết quả
             if visualization_dim == "2D" and n_components >= 2:
                 fig = px.scatter(x=X_reduced[:, 0], y=X_reduced[:, 1], color=y_subset.astype(str),
-                                 title=f"{method} giảm chiều xuống {n_components}D",
-                                 labels={'x': "Thành phần 1", 'y': "Thành phần 2"})
+                                 title=f"{method} giảm chiều xuống {n_components}D")
                 st.plotly_chart(fig)
             elif visualization_dim == "3D" and n_components >= 3:
                 fig = px.scatter_3d(x=X_reduced[:, 0], y=X_reduced[:, 1], z=X_reduced[:, 2],
                                      color=y_subset.astype(str),
-                                     title=f"{method} giảm chiều xuống {n_components}D",
-                                     labels={'x': "Thành phần 1", 'y': "Thành phần 2", 'z': "Thành phần 3"})
+                                     title=f"{method} giảm chiều xuống {n_components}D")
                 st.plotly_chart(fig)
             else:
                 st.warning(f"Không thể hiển thị trực quan với {visualization_dim} khi số chiều = {n_components}!")
@@ -422,6 +522,9 @@ def train_model():
                 st.markdown(f"### 🔗 [Truy cập MLflow]({st.session_state['mlflow_url']})")
             else:
                 st.warning("⚠️ Chưa có đường link MLflow!")
+
+            progress_bar.empty()  # Xóa thanh tiến trình sau khi hoàn tất
+            status_text.empty()  # Xóa hiển thị phần trăm tiến trình
 
 
 
@@ -444,155 +547,127 @@ def mlflow_input():
     st.session_state['mlflow_url'] = f"https://dagshub.com/{DAGSHUB_USERNAME}/{DAGSHUB_REPO_NAME}.mlflow"
 
 
+
+def format_time_relative(timestamp_ms):
+    """Chuyển timestamp milliseconds thành thời gian dễ đọc."""
+    if timestamp_ms is None:
+        return "N/A"
+    dt = datetime.datetime.fromtimestamp(timestamp_ms / 1000)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
 def display_mlflow_experiments():
-    try:
-        st.title("🔍 Quản lý MLflow Experiments")
+    """Hiển thị danh sách Runs trong MLflow với thanh trạng thái tiến trình."""
+    st.title("📊 MLflow Experiment Viewer")
 
-        # Kết nối MlflowClient
-        client = MlflowClient()
+    # Lấy danh sách thí nghiệm
+    experiment_name = "PCA & t-SNE"
+    experiments = mlflow.search_experiments()
+    selected_experiment = next((exp for exp in experiments if exp.name == experiment_name), None)
 
-        # Lấy danh sách thí nghiệm
-        experiments = mlflow.search_experiments()
-        
-        if experiments:
-            st.write("### 📌 Danh sách Thí nghiệm")
-            experiment_data = [
-                {"Experiment ID": exp.experiment_id, "Experiment Name": exp.name, "Artifact Location": exp.artifact_location}
-                for exp in experiments
-            ]
-            st.data_editor(pd.DataFrame(experiment_data))
-            
-            # Chọn thí nghiệm
-            selected_exp_id = st.selectbox("🗂 Chọn thí nghiệm", sorted([exp.experiment_id for exp in experiments]))
-            
-            # Đổi tên thí nghiệm
-            new_exp_name = st.text_input("✏️ Nhập tên mới cho thí nghiệm", "")
-            if st.button("💾 Đổi tên") and new_exp_name:
-                client.rename_experiment(selected_exp_id, new_exp_name)
-                st.success("✅ Đổi tên thành công! Vui lòng tải lại trang.")
-            
-            # Xóa thí nghiệm
-            if st.button("🗑️ Xóa thí nghiệm"):
-                client.delete_experiment(selected_exp_id)
-                st.success("✅ Xóa thí nghiệm thành công! Vui lòng tải lại trang.")
-            
-            # Lấy danh sách runs trong thí nghiệm đã chọn
-            runs = client.search_runs(experiment_ids=[selected_exp_id])
-            if runs:
-                st.write("### 📌 Danh sách Run")
-                
-                # Bộ lọc tìm kiếm Run
-                search_term = st.text_input("🔍 Tìm kiếm Run", "")
-                
-                # Bộ lọc theo khoảng thời gian
-                start_date = st.date_input("📅 Chọn ngày bắt đầu", pd.to_datetime("2023-01-01"))
-                end_date = st.date_input("📅 Chọn ngày kết thúc", pd.to_datetime("today"))
-                
-                # Bộ lọc theo trạng thái Run
-                status_filter = st.multiselect("📌 Lọc theo trạng thái", ["RUNNING", "FINISHED", "FAILED", "KILLED"], default=["RUNNING", "FINISHED"])
-                
-                # Hiển thị danh sách Runs
-                run_data = [
-                    {
-                        "Run ID": run.info.run_id,
-                        "Run Name": run.data.tags.get("mlflow.runName", "Unnamed"),
-                        "Start Time": pd.to_datetime(run.info.start_time, unit='ms'),
-                        "End Time": pd.to_datetime(run.info.end_time, unit='ms') if run.info.end_time else None,
-                        "Duration": (pd.to_datetime(run.info.end_time, unit='ms') - pd.to_datetime(run.info.start_time, unit='ms')).total_seconds() if run.info.end_time else None,
-                        "Status": run.info.status,
-                        "Source": run.data.tags.get("mlflow.source.name", "Unknown"),
-                        "Metrics": run.data.metrics
-                    }
-                    for run in runs
-                ]
-                df_runs = pd.DataFrame(run_data).sort_values(by="Start Time", ascending=False)
-                
-                # Áp dụng bộ lọc
-                df_runs = df_runs[(df_runs["Start Time"] >= pd.to_datetime(start_date)) & (df_runs["Start Time"] <= pd.to_datetime(end_date))]
-                df_runs = df_runs[df_runs["Status"].isin(status_filter)]
-                
-                if search_term:
-                    df_runs = df_runs[df_runs["Run Name"].str.contains(search_term, case=False, na=False)]
-                
-                # Bộ lọc theo Metrics cụ thể
-                metric_name = st.text_input("📊 Nhập tên Metric để lọc", "accuracy")
-                metric_value = st.number_input("📈 Giá trị tối thiểu của Metric", min_value=0.0, step=0.01, format="%.2f")
-                
-                def filter_by_metric(run):
-                    return metric_name in run["Metrics"] and run["Metrics"][metric_name] >= metric_value
-                
-                df_runs = df_runs[df_runs.apply(filter_by_metric, axis=1)]
-                
-                st.data_editor(df_runs)
-                
-                run_options = {run["Run ID"]: f"{run['Run Name']} - {run['Run ID']}" for _, run in df_runs.iterrows()}
-                        
-                # Chọn Run trong thí nghiệm để đổi tên hoặc xóa
-                runs = client.search_runs(experiment_ids=[selected_exp_id])
-                if runs:
-                    run_options = {run.info.run_id: f"{run.data.tags.get('mlflow.runName', 'Unnamed')} - {run.info.run_id}" for run in runs}
-                    selected_run_id = st.selectbox("✏️ Chọn Run để đổi tên", list(run_options.keys()), format_func=lambda x: run_options[x])
-                    new_run_name = st.text_input("📛 Nhập tên mới cho Run", "")
-                    if st.button("✅ Cập nhật tên Run") and new_run_name:
-                        client.set_tag(selected_run_id, "mlflow.runName", new_run_name)
-                        st.success("✅ Cập nhật tên Run thành công! Vui lòng tải lại trang.")
-                    
-                    selected_run_id_delete = st.selectbox("🗑️ Chọn Run để xóa", list(run_options.keys()), format_func=lambda x: run_options[x])
-                    if st.button("❌ Xóa Run"):
-                        client.delete_run(selected_run_id_delete)
-                        st.success("✅ Xóa Run thành công! Vui lòng tải lại trang.")
-                    
+    if not selected_experiment:
+        st.error(f"❌ Experiment '{experiment_name}' không tồn tại!")
+        return
 
-                # Chọn Run để xem chi tiết
-                selected_run_id = st.selectbox("🔍 Chọn Run để xem chi tiết", list(run_options.keys()), format_func=lambda x: run_options[x])
-                selected_run = client.get_run(selected_run_id)
-                
-                st.write("### 📋 Thông tin Run")
-                st.write(f"**Run ID:** {selected_run_id}")
-                st.write(f"**Run Name:** {selected_run.data.tags.get('mlflow.runName', 'Unnamed')}")
-                st.write(f"**Start Time:** {pd.to_datetime(selected_run.info.start_time, unit='ms')}")
-                st.write(f"**End Time:** {pd.to_datetime(selected_run.info.end_time, unit='ms') if selected_run.info.end_time else 'N/A'}")
-                st.write(f"**Duration:** {(pd.to_datetime(selected_run.info.end_time, unit='ms') - pd.to_datetime(selected_run.info.start_time, unit='ms')).total_seconds() if selected_run.info.end_time else 'N/A'} seconds")
-                st.write(f"**Status:** {selected_run.info.status}")
-                st.write(f"**Source:** {selected_run.data.tags.get('mlflow.source.name', 'Unknown')}")
-                
-                # Hiển thị Metrics
-                st.write("### 📊 Metrics")
-                metrics = selected_run.data.metrics
-                if metrics:
-                    df_metrics = pd.DataFrame(metrics.items(), columns=["Metric Name", "Value"])
-                    st.data_editor(df_metrics)
-                else:
-                    st.write("📭 Không có Metrics nào.")
-                
-                # Hiển thị Artifacts
-                artifact_uri = selected_run.info.artifact_uri
-                st.write(f"**Artifact Location:** {artifact_uri}")
-                
-                st.write("### 📂 Danh sách Artifacts")
-                artifacts = client.list_artifacts(selected_run_id)
-                if artifacts:
-                    artifact_paths = [artifact.path for artifact in artifacts]
-                    st.write(artifact_paths)
-                    for artifact in artifacts:
-                        if artifact.path.endswith(".png") or artifact.path.endswith(".jpg"):
-                            st.image(f"{artifact_uri}/{artifact.path}", caption=artifact.path)
-                        if artifact.path.endswith(".csv") or artifact.path.endswith(".txt"):
-                            with open(f"{artifact_uri}/{artifact.path}", "r") as f:
-                                st.download_button(label=f"📥 Tải {artifact.path}", data=f.read(), file_name=artifact.path)
-                else:
-                    st.write("📭 Không có artifacts nào.")
-                
-                # Truy cập MLflow UI
-                st.write("### 🔗 Truy cập MLflow UI")
-                st.markdown("[Mở MLflow UI](https://dagshub.com/Snxtruc/HocMayVoiPython.mlflow)")
-            else:
-                st.warning("⚠️ Không có Run nào trong thí nghiệm này.")
-        else:
-            st.warning("⚠️ Không có Thí nghiệm nào được tìm thấy.")
-    except Exception as e:
-        st.error(f"❌ Lỗi khi lấy danh sách thí nghiệm: {e}")
+    st.subheader(f"📌 Experiment: {experiment_name}")
+    st.write(f"**Experiment ID:** {selected_experiment.experiment_id}")
+    st.write(f"**Trạng thái:** {'Active' if selected_experiment.lifecycle_stage == 'active' else 'Deleted'}")
+    st.write(f"**Vị trí lưu trữ:** {selected_experiment.artifact_location}")
 
+    # --- 🏃‍♂️ Lấy danh sách Runs với thanh trạng thái ---
+    st.write("### 🔄 Đang tải danh sách Runs...")
+    runs = mlflow.search_runs(experiment_ids=[selected_experiment.experiment_id])
+
+    if runs.empty:
+        st.warning("⚠ Không có runs nào trong experiment này.")
+        return
+
+    total_runs = len(runs)
+    run_info = []
+    
+    progress_bar = st.progress(0)  # Thanh tiến trình
+
+    for i, (_, run) in enumerate(runs.iterrows()):
+        run_id = run["run_id"]
+        run_data = mlflow.get_run(run_id)
+        run_tags = run_data.data.tags
+        run_name = run_tags.get("mlflow.runName", f"Run {run_id[:8]}")  # Tên Run
+        created_time = format_time_relative(run_data.info.start_time)
+        duration = (run_data.info.end_time - run_data.info.start_time) / 1000 if run_data.info.end_time else "Đang chạy"
+        source = run_tags.get("mlflow.source.name", "Unknown")
+
+        run_info.append({
+            "Run Name": run_name,
+            "Run ID": run_id,
+            "Created": created_time,
+            "Duration (s)": duration if isinstance(duration, str) else f"{duration:.1f}s",
+            "Source": source
+        })
+
+        # Cập nhật thanh tiến trình
+        progress_bar.progress(int((i + 1) / total_runs * 100))
+
+    progress_bar.empty()  # Xóa thanh tiến trình khi hoàn thành
+
+    # Sắp xếp và hiển thị bảng danh sách Runs
+    run_info_df = pd.DataFrame(run_info).sort_values(by="Created", ascending=False)
+    st.write("### 🏃‍♂️ Danh sách Runs:")
+    st.dataframe(run_info_df, use_container_width=True)
+
+    # Chọn Run từ dropdown
+    run_names = run_info_df["Run Name"].tolist()
+    selected_run_name = st.selectbox("🔍 Chọn một Run để xem chi tiết:", run_names)
+
+    # Lấy Run ID tương ứng
+    selected_run_id = run_info_df.loc[run_info_df["Run Name"] == selected_run_name, "Run ID"].values[0]
+    selected_run = mlflow.get_run(selected_run_id)
+
+    # --- 📝 ĐỔI TÊN RUN ---
+    st.write("### ✏️ Đổi tên Run")
+    new_run_name = st.text_input("Nhập tên mới:", selected_run_name)
+    if st.button("💾 Lưu tên mới"):
+        try:
+            mlflow.set_tag(selected_run_id, "mlflow.runName", new_run_name)
+            st.success(f"✅ Đã đổi tên thành **{new_run_name}**. Hãy tải lại trang để thấy thay đổi!")
+        except Exception as e:
+            st.error(f"❌ Lỗi khi đổi tên: {e}")
+
+    # --- 🗑️ XÓA RUN ---
+    st.write("### ❌ Xóa Run")
+    if st.button("🗑️ Xóa Run này"):
+        try:
+            mlflow.delete_run(selected_run_id)
+            st.success(f"✅ Đã xóa run **{selected_run_name}**! Hãy tải lại trang để cập nhật danh sách.")
+        except Exception as e:
+            st.error(f"❌ Lỗi khi xóa run: {e}")
+
+    # --- HIỂN THỊ CHI TIẾT RUN ---
+    if selected_run:
+        st.subheader(f"📌 Thông tin Run: {selected_run_name}")
+        st.write(f"**Run ID:** {selected_run_id}")
+        st.write(f"**Trạng thái:** {selected_run.info.status}")
+
+        start_time_ms = selected_run.info.start_time
+        start_time = datetime.datetime.fromtimestamp(start_time_ms / 1000).strftime("%Y-%m-%d %H:%M:%S") if start_time_ms else "Không có thông tin"
+        st.write(f"**Thời gian chạy:** {start_time}")
+
+        # Hiển thị thông số đã log
+        params = selected_run.data.params
+        metrics = selected_run.data.metrics
+
+        if params:
+            st.write("### ⚙️ Parameters:")
+            st.json(params)
+
+        if metrics:
+            st.write("### 📊 Metrics:")
+            st.json(metrics)
+
+        # Hiển thị model artifact (nếu có)
+        model_artifact_path = f"{st.session_state['mlflow_url']}/{selected_experiment.experiment_id}/{selected_run_id}/artifacts/model"
+        st.write("### 📂 Model Artifact:")
+        st.write(f"📥 [Tải mô hình]({model_artifact_path})")
+    else:
+        st.warning("⚠ Không tìm thấy thông tin cho run này.")
 
 def PCA_T_sne():
     # Thiết lập CSS để hỗ trợ hiển thị tabs với hiệu ứng hover và thanh cuộn
