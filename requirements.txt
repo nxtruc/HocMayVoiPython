@@ -16,5 +16,8 @@ openml
 plotly
 openml
 humanize
+torch
+torchvision
+torchaudio
 
 
