@@ -5,7 +5,7 @@ import NN
 
 st.set_page_config(page_title="Machine Learning App", layout="wide")
 
-menu = ["Semi-supervised","Classification", "Clustering", "Linear Regression", "PCA/t-SNE", "Neural network"]
+menu = ["Semi-supervised", "Neural network"]
 choice = st.sidebar.selectbox("Chọn chức năng", menu)
 
 
